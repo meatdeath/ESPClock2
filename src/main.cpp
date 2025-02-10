@@ -1,43 +1,26 @@
 #include <Arduino.h>
-
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
-#include <ESPAsyncWebServer.h>
-
-#ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
-#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
-#endif
-
+#include <ESP8266WebServer.h>
 #include <ElegantOTA.h>
-
 #include "LittleFS.h"
-
 #include <ESP8266mDNS.h>
 
-
-// Create AsyncWebServer object on port 80
-AsyncWebServer server(80);
+ESP8266WebServer server(80);
 
 // Search for parameter in HTTP POST request
 const char* PARAM_INPUT_1 = "ssid";
 const char* PARAM_INPUT_2 = "pass";
-const char* PARAM_INPUT_3 = "ip";
-const char* PARAM_INPUT_4 = "gateway";
 
 const char* mdns_name = "espclock2";
-
 
 //Variables to save values from HTML form
 String ssid;
 String pass;
-String ip;
-String gateway;
 
 // File paths to save input values permanently
 const char* ssidPath = "/ssid.txt";
 const char* passPath = "/pass.txt";
-const char* ipPath = "/ip.txt";
-const char* gatewayPath = "/gateway.txt";
 
 IPAddress localIP;
 //IPAddress localIP(192, 168, 1, 200); // hardcoded
@@ -47,6 +30,7 @@ IPAddress localGateway;
 //IPAddress localGateway(192, 168, 1, 1); //hardcoded
 IPAddress subnet(255, 255, 255, 0);
 
+unsigned long ota_progress_millis = 0;
 // Timer variables
 unsigned long previousMillis = 0;
 const long interval = 10000;  // interval to wait for Wi-Fi connection (milliseconds)
@@ -58,6 +42,7 @@ const int ledPin = 2;
 String ledState;
 
 boolean restart = false;
+bool mdns_on = false;
 
 // Initialize LittleFS
 void initFS() {
@@ -68,7 +53,6 @@ void initFS() {
     Serial.println("LittleFS mounted successfully");
   }
 }
-
 
 // Read File from LittleFS
 String readFile(fs::FS &fs, const char * path){
@@ -107,20 +91,16 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
 }
 
 // Initialize WiFi
-bool initWiFi() {
-  if(ssid=="" || ip==""){
+bool initWiFi() 
+{
+  if(ssid=="")
+  {
     Serial.println("Undefined SSID or IP address.");
     return false;
   }
 
   WiFi.mode(WIFI_STA);
-  // localIP.fromString(ip.c_str());
-  // localGateway.fromString(gateway.c_str());
 
-  // if (!WiFi.config(localIP, localGateway, subnet)){
-  //   Serial.println("STA Failed to configure");
-  //   return false;
-  // }
   WiFi.begin(ssid.c_str(), pass.c_str());
 
   Serial.print("Connecting to WiFi...");
@@ -138,24 +118,6 @@ bool initWiFi() {
   Serial.println(WiFi.localIP());
   return true;
 }
-
-// Replaces placeholder with LED state value
-String processor(const String& var) {
-  if(var == "STATE") {
-    if(!digitalRead(ledPin)) {
-      ledState = "ON";
-    }
-    else {
-      ledState = "OFF";
-    }
-    return ledState;
-  }
-  return String();
-}
-
-
-
-unsigned long ota_progress_millis = 0;
 
 void onOTAStart() {
   // Log when OTA has started
@@ -181,8 +143,123 @@ void onOTAEnd(bool success) {
   // <Add your own code here>
 }
 
+void handleRoot(void)
+{    
+  Serial.print("Root uri: ");
+  Serial.println(server.uri());
+  // Just serve the index page from SPIFFS when asked for
+  File file = LittleFS.open("/index.html", "r");
 
-bool mdns_on = false;
+  if(!digitalRead(ledPin)) {
+    ledState = "ON";
+  }
+  else {
+    ledState = "OFF";
+  }
+
+  String fileContent;
+  while(file.available()){
+    fileContent = file.readStringUntil('\n');
+    int index = fileContent.indexOf("%STATE%");
+    if(index >= 0)
+    {
+      fileContent.replace("%STATE%", ledState);
+      Serial.println("State parameter updated");
+    }
+    server.sendContent(fileContent);
+    //break;
+  }
+
+  //server.streamFile(file, "text/html");
+  file.close();
+}
+
+void handleLedOn(void)
+{
+  Serial.println("Turn Led ON");
+  digitalWrite(ledPin, LOW);
+  handleRoot();
+}
+
+void handleLedOff(void)
+{
+  Serial.println("Turn Led OFF");
+  digitalWrite(ledPin, HIGH);
+  handleRoot();
+}
+
+void handleCss(void) 
+{
+  Serial.print("CSS url: ");
+  Serial.println(server.uri());
+  File file = LittleFS.open("/style.css", "r");
+  server.streamFile(file, "text/css");
+  file.close();
+}
+
+void handleWiFiManager(void)
+{
+  Serial.print("url: ");
+  Serial.println(server.uri());
+
+  HTTPMethod method = server.method();
+  Serial.print("Method: ");
+  if(method == HTTP_GET)
+  {
+    Serial.println("HTTP_GET");
+      // Just serve the index page from SPIFFS when asked for
+      File file = LittleFS.open("/wifimanager.html", "r");
+      
+      if(!file)
+        Serial.println("file reading error");
+      else
+        Serial.println("File opened for reading");
+      server.streamFile(file, "text/html");
+      file.close();
+  }
+  else if(method == HTTP_POST)
+  {
+    Serial.println("HTTP_POST");
+    int params = server.args();
+    Serial.print("N of params: ");
+    Serial.println(params);
+
+    for(int i = 0; i < params; i++)
+    {
+      Serial.print("Param: ");
+      String paramName = server.argName(i);
+      Serial.print(paramName);
+      Serial.print("=");
+      String paramValue = server.arg(i);
+      Serial.println(paramValue);
+
+      if (paramName == PARAM_INPUT_1) {
+        ssid = paramValue;
+        Serial.print("SSID set to: ");
+        Serial.println(ssid);
+        // Write file to save value
+        writeFile(LittleFS, ssidPath, ssid.c_str());
+      }
+      if (paramName == PARAM_INPUT_2) {
+        pass = paramValue;
+        Serial.print("Password set to: ");
+        Serial.println(pass);
+        // Write file to save value
+        writeFile(LittleFS, passPath, pass.c_str());
+      }
+    }
+    if (ssid != "" && pass != "")
+    {
+      restart = true;
+      server.send(200, "text/plain", "Done. ESP will restart, connect to your router and go to: " + (String)mdns_name + ".local");
+    }
+    else
+    {
+
+    }
+  }
+}
+
 
 void setup() {
   // Serial port for debugging purposes
@@ -197,55 +274,29 @@ void setup() {
   // Load values saved in LittleFS
   ssid = readFile(LittleFS, ssidPath);
   pass = readFile(LittleFS, passPath);
-  ip = readFile(LittleFS, ipPath);
-  gateway = readFile (LittleFS, gatewayPath);
+  Serial.print("SSID:");
   Serial.println(ssid);
+  Serial.print("PASS:");
   Serial.println(pass);
-  Serial.println(ip);
-  Serial.println(gateway);
 
-  if(initWiFi()) {
-    
+  if(initWiFi()) 
+  {  
     mdns_on = MDNS.begin(mdns_name);
+
     if(!mdns_on)
       Serial.println("Error setting up MDNS responder!");
     else
       Serial.printf("mDNS responder started: %s.local\n", mdns_name);
 
-    // ElegantOTA.begin(&server);    // Start ElegantOTA
-    // // ElegantOTA callbacks
-    // ElegantOTA.onStart(onOTAStart);
-    // ElegantOTA.onProgress(onOTAProgress);
-    // ElegantOTA.onEnd(onOTAEnd);
-
     // Route for root / web page
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(LittleFS, "/index.html", "text/html", false, processor);
-    });
-    
-    server.serveStatic("/", LittleFS, "/");
-    
-    // Route to set GPIO state to HIGH
-    server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request) {
-      digitalWrite(ledPin, LOW);
-      request->send(LittleFS, "/index.html", "text/html", false, processor);
-    });
+    server.on("/", handleRoot);
+    server.on("/on", handleLedOn);
+    server.on("/off", handleLedOff);
+    server.on("/style.css", handleCss);
 
-    // Route to set GPIO state to LOW
-    server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request) {
-      digitalWrite(ledPin, HIGH);
-      request->send(LittleFS, "/index.html", "text/html", false, processor);
-    });
-
-  ElegantOTA.begin(&server);    // Start ElegantOTA
-  // ElegantOTA callbacks
-  ElegantOTA.onStart(onOTAStart);
-  ElegantOTA.onProgress(onOTAProgress);
-  ElegantOTA.onEnd(onOTAEnd);
-
-    server.begin();
   }
-  else {
+  else 
+  {
     // Connect to Wi-Fi network with SSID and password
     Serial.println("Setting AP (Access Point)");
     // NULL sets an open Access Point
@@ -256,60 +307,24 @@ void setup() {
     Serial.println(IP); 
 
     // Web Server Root URL
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-      request->send(LittleFS, "/wifimanager.html", "text/html");
-    });
-    
-    server.serveStatic("/", LittleFS, "/");
-    
-    server.on("/", HTTP_POST, [](AsyncWebServerRequest *request) {
-      int params = request->params();
-      for(int i=0;i<params;i++){
-        const AsyncWebParameter* p = request->getParam(i);
-        if(p->isPost()){
-          // HTTP POST ssid value
-          if (p->name() == PARAM_INPUT_1) {
-            ssid = p->value().c_str();
-            Serial.print("SSID set to: ");
-            Serial.println(ssid);
-            // Write file to save value
-            writeFile(LittleFS, ssidPath, ssid.c_str());
-          }
-          // HTTP POST pass value
-          if (p->name() == PARAM_INPUT_2) {
-            pass = p->value().c_str();
-            Serial.print("Password set to: ");
-            Serial.println(pass);
-            // Write file to save value
-            writeFile(LittleFS, passPath, pass.c_str());
-          }
-          // HTTP POST ip value
-          if (p->name() == PARAM_INPUT_3) {
-            ip = p->value().c_str();
-            Serial.print("IP Address set to: ");
-            Serial.println(ip);
-            // Write file to save value
-            writeFile(LittleFS, ipPath, ip.c_str());
-          }
-          // HTTP POST gateway value
-          if (p->name() == PARAM_INPUT_4) {
-            gateway = p->value().c_str();
-            Serial.print("Gateway set to: ");
-            Serial.println(gateway);
-            // Write file to save value
-            writeFile(LittleFS, gatewayPath, gateway.c_str());
-          }
-          //Serial.printf("POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
-        }
-      }
-      restart = true;
-      request->send(200, "text/plain", "Done. ESP will restart, connect to your router and go to IP address: " + ip);
-    });
-    server.begin();
+    server.on("/", handleWiFiManager);
+    server.on("/style.css", handleCss);
   }
+
+  ElegantOTA.begin(&server);    // Start ElegantOTA
+  
+  // ElegantOTA callbacks
+  ElegantOTA.onStart(onOTAStart);
+  ElegantOTA.onProgress(onOTAProgress);
+  ElegantOTA.onEnd(onOTAEnd);
+  server.begin();
+  Serial.println("HTTP server started");
 }
 
 void loop() {
+  // put your main code here, to run repeatedly:
+  server.handleClient();
+  ElegantOTA.loop();
   
   //ElegantOTA.loop();
   if(mdns_on) MDNS.update();

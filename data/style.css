@@ -38,6 +38,10 @@ html {
     background-color: white; 
     box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);
   }
+
+  .card table {
+    width: 100%;
+  }
   
   .card-title { 
     font-size: 1.2rem;
@@ -91,7 +95,7 @@ html {
     padding: 15px 32px;
     text-align: center;
     font-size: 16px;
-    width: 100px;
+    min-width: 100px;
     border-radius: 4px;
     transition-duration: 0.4s;
   }
@@ -106,4 +110,10 @@ html {
   }
   .button-off:hover {
     background-color: #252524;
+  } 
+  .button-update {
+    background-color: #4c8341;
+  }
+  .button-update:hover {
+    background-color: #60c55c;
   } 
