@@ -5,6 +5,8 @@
 #include <ElegantOTA.h>
 #include "LittleFS.h"
 #include <ESP8266mDNS.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 ESP8266WebServer server(80);
 
@@ -43,6 +45,10 @@ String ledState;
 
 boolean restart = false;
 bool mdns_on = false;
+bool accessPoint = false;
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
 
 // Initialize LittleFS
 void initFS() {
@@ -281,6 +287,7 @@ void setup() {
 
   if(initWiFi()) 
   {  
+    accessPoint = false;
     mdns_on = MDNS.begin(mdns_name);
 
     if(!mdns_on)
@@ -293,10 +300,10 @@ void setup() {
     server.on("/on", handleLedOn);
     server.on("/off", handleLedOff);
     server.on("/style.css", handleCss);
-
   }
   else 
   {
+    accessPoint = true;
     // Connect to Wi-Fi network with SSID and password
     Serial.println("Setting AP (Access Point)");
     // NULL sets an open Access Point
@@ -319,6 +326,8 @@ void setup() {
   ElegantOTA.onEnd(onOTAEnd);
   server.begin();
   Serial.println("HTTP server started");
+  
+  timeClient.begin();
 }
 
 void loop() {
@@ -326,6 +335,11 @@ void loop() {
   server.handleClient();
   ElegantOTA.loop();
   
+  if (accessPoint == false)
+  {
+    timeClient.update();
+    Serial.println(timeClient.getFormattedTime());
+  }
   //ElegantOTA.loop();
   if(mdns_on) MDNS.update();
   if (restart){
