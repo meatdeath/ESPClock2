@@ -14,7 +14,7 @@ ESP8266WebServer server(80);
 const char* PARAM_INPUT_1 = "ssid";
 const char* PARAM_INPUT_2 = "pass";
 
-const char* mdns_name = "espclock";
+const char* mdns_name = "espclock2";
 
 //Variables to save values from HTML form
 String ssid;
@@ -149,6 +149,16 @@ void onOTAEnd(bool success) {
   // <Add your own code here>
 }
 
+void handleReset(void)
+{
+    LittleFS.remove("/ssid.txt"); 
+    LittleFS.remove("/pass.txt"); 
+    {
+      restart = true;
+      server.send(200, "text/plain", "Done. ESP will restart, connect to AP and use 192.168.4.1 to manage WiFi connections");
+    }
+}
+
 void handleRoot(void)
 {    
   Serial.print("Root uri: ");
@@ -281,7 +291,7 @@ void getNetworks(void)
 {
     Serial.println(F("Starting WiFi scan..."));
 
-    int8_t networkNum = WiFi.scanNetworks(/*async=*/false, /*hidden=*/true);
+    int8_t networkNum = WiFi.scanNetworks(/*async=*/false, /*hidden=*/false);
 
     if (networkNum == 0) 
     {
@@ -327,10 +337,10 @@ void getNetworks(void)
                 }
             }
             networkInfo[i].description = 
-                String(i) + ": " + networkInfo[i].ssid +
-                " [CH " + String(channel) + "] [" + 
+                String(i) + ": " + networkInfo[i].ssid + ((encryptionType == ENC_TYPE_NONE)? " " : " (encrypted) ") +
+                "\n        [CH " + String(channel) + "] [" + 
                 String(bssid[0],16) + ":" +  String(bssid[1],16) + ":" + String(bssid[2],16) + ":" + String(bssid[3],16) + ":" + String(bssid[4],16) + ":" + String(bssid[5],16) + "] " + 
-                String(rssi) + "dbm" + ((encryptionType == ENC_TYPE_NONE)? " " : "*") + (hidden ? "H" : "V") + phyMode;
+                String(rssi) + "dbm" + (hidden ? " H " : " V ") + phyMode;
 
             Serial.println(networkInfo[i].description);
             yield();
@@ -373,6 +383,7 @@ void setup() {
 
     // Route for root / web page
     server.on("/", handleRoot);
+    server.on("/reset", handleReset);
     server.on("/on", handleLedOn);
     server.on("/off", handleLedOff);
     server.on("/style.css", handleCss);
@@ -418,7 +429,13 @@ void loop() {
   if (accessPoint == false)
   {
     timeClient.update();
-    Serial.println(timeClient.getFormattedTime());
+    static String old_time = "";
+    String time = timeClient.getFormattedTime();
+    if (time != old_time)
+    {
+        Serial.println(time);
+        old_time = time;
+    }
   }
   //ElegantOTA.loop();
   if(mdns_on) MDNS.update();
