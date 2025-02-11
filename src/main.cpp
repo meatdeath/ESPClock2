@@ -14,7 +14,7 @@ ESP8266WebServer server(80);
 const char* PARAM_INPUT_1 = "ssid";
 const char* PARAM_INPUT_2 = "pass";
 
-const char* mdns_name = "espclock2";
+const char* mdns_name = "espclock";
 
 //Variables to save values from HTML form
 String ssid;
@@ -266,6 +266,82 @@ void handleWiFiManager(void)
   }
 }
 
+typedef struct {
+    String ssid;
+    int32_t rssi;
+    String description;
+}
+networkInfo_t;
+
+#define MAX_NETWORKS 25
+networkInfo_t networkInfo[MAX_NETWORKS];
+int8_t networkNum = 0;
+
+void getNetworks(void)
+{
+    Serial.println(F("Starting WiFi scan..."));
+
+    int8_t networkNum = WiFi.scanNetworks(/*async=*/false, /*hidden=*/true);
+
+    if (networkNum == 0) 
+    {
+        Serial.println(F("No networks found"));
+    } 
+    else if (networkNum > 0) 
+    {
+        Serial.printf(PSTR("%d networks found:\n"), networkNum);
+
+        // Print unsorted scan results
+        for (int8_t i = 0; i < networkNum && i < MAX_NETWORKS; i++) 
+        {
+            int32_t rssi;
+            uint8_t encryptionType;
+            uint8_t *bssid;
+            int32_t channel;
+            bool hidden;
+
+            WiFi.getNetworkInfo(i, networkInfo[i].ssid, encryptionType, rssi, bssid, channel, hidden);
+            networkInfo[i].rssi = rssi;
+
+            // get extra info
+            const bss_info *bssInfo = WiFi.getScanInfoByIndex(i);
+            String phyMode;
+            const char *wps = "";
+            if (bssInfo) {
+                phyMode.reserve(12);
+                phyMode = F("802.11");
+                String slash;
+                if (bssInfo->phy_11b) {
+                    phyMode += 'b';
+                    slash = '/';
+                }
+                if (bssInfo->phy_11g) {
+                    phyMode += slash + 'g';
+                    slash = '/';
+                }
+                if (bssInfo->phy_11n) {
+                    phyMode += slash + 'n';
+                }
+                if (bssInfo->wps) {
+                    wps = PSTR("WPS");
+                }
+            }
+            networkInfo[i].description = 
+                String(i) + ": " + networkInfo[i].ssid +
+                " [CH " + String(channel) + "] [" + 
+                String(bssid[0],16) + ":" +  String(bssid[1],16) + ":" + String(bssid[2],16) + ":" + String(bssid[3],16) + ":" + String(bssid[4],16) + ":" + String(bssid[5],16) + "] " + 
+                String(rssi) + "dbm" + ((encryptionType == ENC_TYPE_NONE)? " " : "*") + (hidden ? "H" : "V") + phyMode;
+
+            Serial.println(networkInfo[i].description);
+            yield();
+        }
+    } 
+    else 
+    {
+        Serial.printf(PSTR("WiFi scan error %d"), networkNum);
+    }
+}
+
 
 void setup() {
   // Serial port for debugging purposes
@@ -304,10 +380,14 @@ void setup() {
   else 
   {
     accessPoint = true;
+
+    // Create list of SSID
+    getNetworks();
+
     // Connect to Wi-Fi network with SSID and password
     Serial.println("Setting AP (Access Point)");
     // NULL sets an open Access Point
-    WiFi.softAP("ESPCLOCK2-AP", NULL);
+    WiFi.softAP("ESPCLOCK-AP", NULL);
 
     IPAddress IP = WiFi.softAPIP();
     Serial.print("AP IP address: ");

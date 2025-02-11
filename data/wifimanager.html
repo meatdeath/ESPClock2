@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ESP Wi-Fi Manager</title>
+  <title>ESP CLOCK AP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
@@ -21,7 +21,11 @@
                 <label for="ssid">SSID</label>
               </td>
               <td>
-                <input type="text" id ="ssid" name="ssid">
+                <!--<input type="text" id ="ssid" name="ssid">-->
+                <select id="ssid" name="ssid">
+                    <option value="">-- Please choose WiFi SSID from the list --</option>
+                    %SSID_LIST%
+                </select>
               </td>
             </tr>
             <tr>
