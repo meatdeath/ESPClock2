@@ -50,6 +50,18 @@ bool accessPoint = false;
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
+
+typedef struct {
+  String ssid;
+  int32_t rssi;
+  String description;
+}
+networkInfo_t;
+
+#define MAX_NETWORKS 25
+networkInfo_t networkInfo[MAX_NETWORKS];
+int8_t networkNum = 0;
+
 // Initialize LittleFS
 void initFS() {
   if (!LittleFS.begin()) {
@@ -226,11 +238,48 @@ void handleWiFiManager(void)
       // Just serve the index page from SPIFFS when asked for
       File file = LittleFS.open("/wifimanager.html", "r");
       
-      if(!file)
-        Serial.println("file reading error");
-      else
-        Serial.println("File opened for reading");
-      server.streamFile(file, "text/html");
+      // if(!file)
+      //   Serial.println("file reading error");
+      // else
+      //   Serial.println("File opened for reading");
+      // server.streamFile(file, "text/html");
+
+      String fileContent;
+      while(file.available()){
+        fileContent = file.readStringUntil('\n');
+        String search_template = "%SSID_LIST%";
+        int index = fileContent.indexOf(search_template);
+        if(index >= 0)
+        {
+          Serial.printf("%s found at %d\n", search_template.c_str(), index);
+          String substring = fileContent.substring(0, index);
+          server.sendContent(substring);
+          Serial.println("begin:\"" + substring + "\"");
+          server.sendContent("\n");
+
+          Serial.println("Network num: "+String(networkNum));
+          for (int8_t i = 0; i < networkNum; i++)
+          {
+            String option_string = 
+                String("<option value='") + 
+                networkInfo[i].ssid + 
+                String("'>") + 
+                networkInfo[i].description + 
+                String("</option>\n");
+            server.sendContent(option_string);
+            Serial.println("Option string: " + String(option_string));
+          }
+          
+          substring = fileContent.substring(index+search_template.length());
+          server.sendContent(substring);
+          
+          Serial.println("begin:\"" + substring + "\"");
+        }
+        else
+        {
+          server.sendContent(fileContent);
+        }
+      }
       file.close();
   }
   else if(method == HTTP_POST)
@@ -271,27 +320,16 @@ void handleWiFiManager(void)
     }
     else
     {
-
+      server.send(200, "text/plain", "Error. SSID not selected");
     }
   }
 }
-
-typedef struct {
-    String ssid;
-    int32_t rssi;
-    String description;
-}
-networkInfo_t;
-
-#define MAX_NETWORKS 25
-networkInfo_t networkInfo[MAX_NETWORKS];
-int8_t networkNum = 0;
 
 void getNetworks(void)
 {
     Serial.println(F("Starting WiFi scan..."));
 
-    int8_t networkNum = WiFi.scanNetworks(/*async=*/false, /*hidden=*/false);
+    networkNum = WiFi.scanNetworks(/*async=*/false, /*hidden=*/false);
 
     if (networkNum == 0) 
     {
@@ -337,13 +375,38 @@ void getNetworks(void)
                 }
             }
             networkInfo[i].description = 
-                String(i) + ": " + networkInfo[i].ssid + ((encryptionType == ENC_TYPE_NONE)? " " : " (encrypted) ") +
-                "\n        [CH " + String(channel) + "] [" + 
+                networkInfo[i].ssid + ((encryptionType == ENC_TYPE_NONE)? " " : " (encrypted) ") +
+                " [CH " + String(channel) + "] [" + 
                 String(bssid[0],16) + ":" +  String(bssid[1],16) + ":" + String(bssid[2],16) + ":" + String(bssid[3],16) + ":" + String(bssid[4],16) + ":" + String(bssid[5],16) + "] " + 
-                String(rssi) + "dbm" + (hidden ? " H " : " V ") + phyMode;
+                String(rssi) + "dbm" + (hidden ? " H " : " V ") + phyMode + " " + wps;
 
-            Serial.println(networkInfo[i].description);
+            //Serial.println(networkInfo[i].description);
+            if (i > 0)
+            {
+              int8_t j;
+              for (j = i; j > 0; j--)
+              {
+                if (networkInfo[j].rssi <= networkInfo[j-1].rssi)
+                {
+                  //Serial.printf("[%d]%d <= [%d]%d\n", j, networkInfo[i].rssi, j-1, networkInfo[j-1].rssi);
+                  break;
+                }
+                else
+                {
+                  //Serial.printf("swap [%d]%d > [%d]%d\n", j, networkInfo[i].rssi, j-1, networkInfo[j-1].rssi);
+                  networkInfo_t tmp = networkInfo[j];
+                  networkInfo[j] = networkInfo[j-1];
+                  networkInfo[j-1] = tmp;
+                }
+              }
+            }
             yield();
+        }
+        
+        Serial.println("Sorted list:");
+        for (int8_t i = 0; i < networkNum && i < MAX_NETWORKS; i++) 
+        {
+          Serial.println(networkInfo[i].description);
         }
     } 
     else 
