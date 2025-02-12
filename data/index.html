@@ -20,6 +20,7 @@
             <a href="off"><button class="button-off">OFF</button></a>
           </p>
           <p class="state">State: %STATE%</p>
+          <p class="time" id="time_string"></p>
         </div>
       </div>
     </div>
@@ -27,5 +28,23 @@
       <a href="update"><button class="button-update">UPDATE</button></a>
     </div>
 
+    <script>
+      setInterval(function() 
+      {
+        getTime();
+      }, 1000); 
+      function getTime() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+            document.getElementById("time_string").innerHTML =
+            this.responseText;
+          }
+        };
+        xhttp.open("GET", "timeread", true);
+        xhttp.send();
+      }
+    </script>
   </body>
 </html>
+

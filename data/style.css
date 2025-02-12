@@ -89,6 +89,10 @@ html {
     font-size: 1.2rem;
     color: #1282A2;
   }
+  .time {
+    font-size: 1.2rem;
+    color: #2812a2;
+  }
   button {
     border: none;
     color: #FEFCFB;

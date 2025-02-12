@@ -20,6 +20,8 @@ const char* mdns_name = "espclock2";
 String ssid;
 String pass;
 
+String timeRead = "";
+
 // File paths to save input values permanently
 const char* ssidPath = "/ssid.txt";
 const char* passPath = "/pass.txt";
@@ -214,6 +216,11 @@ void handleLedOff(void)
   Serial.println("Turn Led OFF");
   digitalWrite(ledPin, HIGH);
   handleRoot();
+}
+
+void handleTime(void)
+{
+  server.send(200, "text/plane", timeRead);
 }
 
 void handleCss(void) 
@@ -450,6 +457,7 @@ void setup() {
     server.on("/on", handleLedOn);
     server.on("/off", handleLedOff);
     server.on("/style.css", handleCss);
+    server.on("/timeread", handleTime);
   }
   else 
   {
@@ -493,11 +501,16 @@ void loop() {
   {
     timeClient.update();
     static String old_time = "";
-    String time = timeClient.getFormattedTime();
-    if (time != old_time)
+    //timeRead = timeClient.getFormattedTime();
+    unsigned long offset = 0;
+    unsigned long epoch_time = timeClient.getEpochTime() + offset;
+    char time_str[20] ="";
+    snprintf(time_str, 20, "%02lu:%02lu:%02lu", (epoch_time/3600)%24, (epoch_time/60)%60, epoch_time%60);
+    timeRead = String(time_str);
+    if (timeRead != old_time)
     {
-        Serial.println(time);
-        old_time = time;
+        Serial.println(timeRead);
+        old_time = timeRead;
     }
   }
   //ElegantOTA.loop();
