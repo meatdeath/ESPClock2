@@ -223,6 +223,25 @@ void handleTime(void)
   server.send(200, "text/plane", timeRead);
 }
 
+void handleTimeOffset(void)
+{
+  HTTPMethod method = server.method();
+  Serial.print("Method: ");
+  if(method == HTTP_GET)
+  {
+    Serial.println("HTTP_GET");
+  }
+  else if(method == HTTP_POST)
+  {
+    Serial.println("HTTP_POST");
+    int params = server.args();
+    Serial.print("N of params: ");
+    Serial.println(params);
+  }
+  
+  server.send(200, "text/plane", "-7200");
+}
+
 void handleCss(void) 
 {
   Serial.print("CSS url: ");
@@ -458,6 +477,7 @@ void setup() {
     server.on("/off", handleLedOff);
     server.on("/style.css", handleCss);
     server.on("/timeread", handleTime);
+    server.on("/settimeoffset", handleTimeOffset);
   }
   else 
   {

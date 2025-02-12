@@ -25,10 +25,32 @@
       </div>
     </div>
     <div class="content">
-      <a href="update"><button class="button-update">UPDATE</button></a>
+      <div class="card-grid">
+        <div class="card">
+          <p class="card-title time-offset">Time offset</p>
+          <table>
+            <tr>
+              <td><label class="hours-offset" for="hours-offset">Hours:</label></td>
+              <td><input type="number" name="hours-offset" id="hours-offset" value="0" min="-12" max="12"></td>
+            </tr>
+            <tr>
+              <td><label class="minutes-offset" for="minutes-offset">Minutes:</label></td>
+              <td><input type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15"></td>
+            </tr>
+          </table>
+          <!-- <a href="setoffset"> -->
+            <button class="button-update-offset" onclick="setOffset()">UPDATE OFFSET</button>
+          <!-- </a> -->
+        </div>
+      </div>
+    </div>
+    <div class="content">
+      <a href="update"><button class="button-update">FW UPDATE</button></a>
+      <a href="reset"><button class="button-reset">RESET</button></a>
     </div>
 
     <script>
+      getTime();
       setInterval(function() 
       {
         getTime();
@@ -43,6 +65,28 @@
         };
         xhttp.open("GET", "timeread", true);
         xhttp.send();
+      }
+      function setOffset() {
+        var hours = document.getElementById("hours-offset").value;
+        var minutes = document.getElementById("minutes-offset").value;
+        var seconds = hours*3600 + ((hours>0)?minutes:(-minutes)) *60;
+        console.log("Offset: " + hours + "h " + minutes + "min => " + seconds + "s");
+
+        var param = "seconds="+seconds;
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+            var seconds = this.responseText;
+            var hours = seconds / 3600;
+            var minutes = (seconds%3600) / 60;
+            if (minutes < 0) minutes = -minutes;    
+            console.log("Offset from device: " + hours + "h " + minutes + "min => " + seconds + "s");
+            document.getElementById("hours-offset").value = hours;
+            document.getElementById("minutes-offset").value = minutes;
+          }
+        };
+        xhttp.open("POST", "settimeoffset", true);
+        xhttp.send(param);
       }
     </script>
   </body>

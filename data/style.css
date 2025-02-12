@@ -68,10 +68,21 @@ html {
     background-color: #1282A2;
   }
   
-  input[type=text], input[type=number], input[type=password], select {
+  input[type=text], input[type=password], select {
+  /*  input[type=text], input[type=number], input[type=password], select {*/
     width: 50%;
-    padding: 12px 20px;
+    padding: 12px;
     margin: 18px;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  input[type=number] {
+    width: 50%;
+    padding: 12px;
+    margin: 0 18px 18px 18px;
     display: inline-block;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -121,3 +132,24 @@ html {
   .button-update:hover {
     background-color: #60c55c;
   } 
+  .button-reset {
+    background-color: #834141;
+  }
+  .button-reset:hover {
+    background-color: #c55c5c;
+  } 
+  .button-update-offset {
+    background-color: #418380;
+    margin-bottom: 16px;
+  }
+  .button-update-offset:hover {
+    background-color: #5cc5c5;
+  } 
+
+  button:active {
+    transition-duration: 50ms;
+    transform: scale(0.99);
+    /* Scaling button to 0.98 to its original size */
+    box-shadow: 3px 2px 16px 1px rgba(0, 0, 0, 0.24);
+    /* Lowering the shadow */
+}
