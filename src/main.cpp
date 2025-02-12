@@ -190,8 +190,8 @@ void handleRoot(void)
   String fileContent;
   while(file.available()){
     fileContent = file.readStringUntil('\n');
-    int index = fileContent.indexOf("%STATE%");
-    if(index >= 0)
+    int pos = fileContent.indexOf("%STATE%");
+    if(pos >= 0)
     {
       fileContent.replace("%STATE%", ledState);
       Serial.println("State parameter updated");
@@ -274,11 +274,11 @@ void handleWiFiManager(void)
       while(file.available()){
         fileContent = file.readStringUntil('\n');
         String search_template = "%SSID_LIST%";
-        int index = fileContent.indexOf(search_template);
-        if(index >= 0)
+        int pos = fileContent.indexOf(search_template);
+        if(pos >= 0)
         {
-          Serial.printf("%s found at %d\n", search_template.c_str(), index);
-          String substring = fileContent.substring(0, index);
+          Serial.printf("%s found at %d\n", search_template.c_str(), pos);
+          String substring = fileContent.substring(0, pos);
           server.sendContent(substring);
           Serial.println("begin:\"" + substring + "\"");
           server.sendContent("\n");
@@ -296,7 +296,7 @@ void handleWiFiManager(void)
             Serial.println("Option string: " + String(option_string));
           }
           
-          substring = fileContent.substring(index+search_template.length());
+          substring = fileContent.substring(pos+search_template.length());
           server.sendContent(substring);
           
           Serial.println("begin:\"" + substring + "\"");
