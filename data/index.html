@@ -14,27 +14,22 @@
     <div class="content">
       <div class="card-grid">
         <div class="card">
-          <p class="card-title"><i class="fas fa-lightbulb"></i> GPIO 2</p>
-          <p>
-            <a href="on"><button class="button-on">ON</button></a>
-            <a href="off"><button class="button-off">OFF</button></a>
-          </p>
-          <p class="state">State: %STATE%</p>
-          <p class="time" id="time_string"></p>
+          <p class="card-title">TIME</p>
+          <input type="text" readonly class="time" id="time-string" value="00:00:00">
         </div>
       </div>
     </div>
     <div class="content">
       <div class="card-grid">
         <div class="card">
-          <p class="card-title time-offset">Time offset</p>
+          <p class="card-title time-offset">TIME OFFSET</p>
           <table>
             <tr>
-              <td><label class="hours-offset" for="hours-offset">Hours:</label></td>
+              <td><label class="hours-offset" for="hours-offset">Hours</label></td>
               <td><input type="number" name="hours-offset" id="hours-offset" value="0" min="-12" max="12"></td>
             </tr>
             <tr>
-              <td><label class="minutes-offset" for="minutes-offset">Minutes:</label></td>
+              <td><label class="minutes-offset" for="minutes-offset">Minutes</label></td>
               <td><input type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15"></td>
             </tr>
           </table>
@@ -44,6 +39,20 @@
         </div>
       </div>
     </div>
+    
+    <div class="content">
+      <div class="card-grid">
+        <div class="card">
+          <p class="card-title"><i class="fas fa-lightbulb"></i> GPIO 2</p>
+          <p>
+            <a href="on"><button class="button-on">ON</button></a>
+            <a href="off"><button class="button-off">OFF</button></a>
+          </p>
+          <p class="state">State: %STATE%</p>
+        </div>
+      </div>
+    </div>
+
     <div class="content">
       <a href="update"><button class="button-update">FW UPDATE</button></a>
       <a href="reset"><button class="button-reset">RESET</button></a>
@@ -59,8 +68,7 @@
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
           if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("time_string").innerHTML =
-            this.responseText;
+            document.getElementById("time-string").value = this.responseText;
           }
         };
         xhttp.open("GET", "timeread", true);

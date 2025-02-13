@@ -7,6 +7,9 @@
 #include <ESP8266mDNS.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+#include <Preferences.h>
+
+Preferences prefs;
 
 ESP8266WebServer server(80);
 
@@ -76,41 +79,41 @@ void initFS() {
   }
 }
 
-// Read File from LittleFS
-String readFile(fs::FS &fs, const char * path){
-  Serial.printf("Reading file: %s\r\n", path);
+// // Read File from LittleFS
+// String readFile(fs::FS &fs, const char * path){
+//   Serial.printf("Reading file: %s\r\n", path);
 
-  File file = fs.open(path, "r");
-  if(!file || file.isDirectory()){
-    Serial.println("- failed to open file for reading");
-    return String();
-  }
+//   File file = fs.open(path, "r");
+//   if(!file || file.isDirectory()){
+//     Serial.println("- failed to open file for reading");
+//     return String();
+//   }
 
-  String fileContent;
-  while(file.available()){
-    fileContent = file.readStringUntil('\n');
-    break;
-  }
-  file.close();
-  return fileContent;
-}
+//   String fileContent;
+//   while(file.available()){
+//     fileContent = file.readStringUntil('\n');
+//     break;
+//   }
+//   file.close();
+//   return fileContent;
+// }
 
-// Write file to LittleFS
-void writeFile(fs::FS &fs, const char * path, const char * message){
-  Serial.printf("Writing file: %s\r\n", path);
+// // Write file to LittleFS
+// void writeFile(fs::FS &fs, const char * path, const char * message){
+//   Serial.printf("Writing file: %s\r\n", path);
 
-  File file = fs.open(path, "w");
-  if(!file){
-    Serial.println("- failed to open file for writing");
-    return;
-  }
-  if(file.print(message)){
-    Serial.println("- file written");
-  } else {
-    Serial.println("- frite failed");
-  }
-  file.close();
-}
+//   File file = fs.open(path, "w");
+//   if(!file){
+//     Serial.println("- failed to open file for writing");
+//     return;
+//   }
+//   if(file.print(message)){
+//     Serial.println("- file written");
+//   } else {
+//     Serial.println("- frite failed");
+//   }
+//   file.close();
+// }
 
 // Initialize WiFi
 bool initWiFi() 
@@ -167,8 +170,11 @@ void onOTAEnd(bool success) {
 
 void handleReset(void)
 {
-    LittleFS.remove("/ssid.txt"); 
-    LittleFS.remove("/pass.txt"); 
+    // LittleFS.remove("/ssid.txt"); 
+    // LittleFS.remove("/pass.txt"); 
+    //prefs.putInt("timeOffset", 0);
+    prefs.putString("ssid", "");
+    prefs.putString("pass", "");
     {
       restart = true;
       server.send(200, "text/plain", "Done. ESP will restart, connect to AP and use 192.168.4.1 to manage WiFi connections");
@@ -252,8 +258,9 @@ void handleTimeOffset(void)
         timeOffset = paramValue.toInt();
         Serial.print("New time offset: ");
         Serial.println(timeOffset);
+        prefs.putInt("timeOffset", timeOffset);
         // Write file to save value
-        writeFile(LittleFS, timeOffsetPath, String(timeOffset).c_str());
+        // writeFile(LittleFS, timeOffsetPath, String(timeOffset).c_str());
       }
     }
   }
@@ -348,24 +355,27 @@ void handleWiFiManager(void)
         Serial.print("SSID set to: ");
         Serial.println(ssid);
         // Write file to save value
-        writeFile(LittleFS, ssidPath, ssid.c_str());
+        // writeFile(LittleFS, ssidPath, ssid.c_str());
       }
       if (paramName == PARAM_INPUT_2) {
         pass = paramValue;
         Serial.print("Password set to: ");
         Serial.println(pass);
         // Write file to save value
-        writeFile(LittleFS, passPath, pass.c_str());
+        // writeFile(LittleFS, passPath, pass.c_str());
       }
     }
     if (ssid != "" && pass != "")
     {
+      prefs.putString("ssid", ssid);
+      prefs.putString("pass", pass);
       restart = true;
       server.send(200, "text/plain", "Done. ESP will restart, connect to your router and go to: " + (String)mdns_name + ".local");
+      // server.send(200, "text/plain", "Done. ESP will restart, connect to your router and go to: <a href='" + (String)mdns_name + ".local'>" + (String)mdns_name + ".local<\a>");
     }
     else
     {
-      server.send(200, "text/plain", "Error. SSID not selected");
+      server.send(200, "text/plain", "Error. SSID or PASSWORD not selected");
     }
   }
 }
@@ -469,13 +479,17 @@ void setup() {
 
   // Set GPIO 2 as an OUTPUT
   pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, LOW);
+  digitalWrite(ledPin, HIGH);
   
   // Load values saved in LittleFS
-  String time_offset_str = readFile(LittleFS, timeOffsetPath);
-  timeOffset = time_offset_str.toInt();
-  ssid = readFile(LittleFS, ssidPath);
-  pass = readFile(LittleFS, passPath);
+  prefs.begin("setup");
+  timeOffset = prefs.getInt("timeOffset", 0);
+  // String time_offset_str = readFile(LittleFS, timeOffsetPath);
+  // timeOffset = time_offset_str.toInt();
+  ssid = prefs.getString("ssid","");
+  pass = prefs.getString("pass","");
+  // ssid = readFile(LittleFS, ssidPath);
+  // pass = readFile(LittleFS, passPath);
   Serial.print("SSID:");
   Serial.println(ssid);
   Serial.print("PASS:");
