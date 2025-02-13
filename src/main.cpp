@@ -21,10 +21,12 @@ String ssid;
 String pass;
 
 String timeRead = "";
+long timeOffset = 0;
 
 // File paths to save input values permanently
 const char* ssidPath = "/ssid.txt";
 const char* passPath = "/pass.txt";
+const char* timeOffsetPath = "/toffset.txt";
 
 IPAddress localIP;
 //IPAddress localIP(192, 168, 1, 200); // hardcoded
@@ -237,9 +239,26 @@ void handleTimeOffset(void)
     int params = server.args();
     Serial.print("N of params: ");
     Serial.println(params);
+    if (params == 1)
+    {
+      Serial.print("Param: ");
+      String paramName = server.argName(0);
+      Serial.print(paramName);
+      Serial.print("=");
+      String paramValue = server.arg(0);
+      Serial.println(paramValue);
+
+      if (paramName == "seconds") {
+        timeOffset = paramValue.toInt();
+        Serial.print("New time offset: ");
+        Serial.println(timeOffset);
+        // Write file to save value
+        writeFile(LittleFS, timeOffsetPath, String(timeOffset).c_str());
+      }
+    }
   }
   
-  server.send(200, "text/plane", "-7200");
+  server.send(200, "text/plane", String(timeOffset));
 }
 
 void handleCss(void) 
@@ -453,6 +472,8 @@ void setup() {
   digitalWrite(ledPin, LOW);
   
   // Load values saved in LittleFS
+  String time_offset_str = readFile(LittleFS, timeOffsetPath);
+  timeOffset = time_offset_str.toInt();
   ssid = readFile(LittleFS, ssidPath);
   pass = readFile(LittleFS, passPath);
   Serial.print("SSID:");
@@ -477,7 +498,7 @@ void setup() {
     server.on("/off", handleLedOff);
     server.on("/style.css", handleCss);
     server.on("/timeread", handleTime);
-    server.on("/settimeoffset", handleTimeOffset);
+    server.on("/timeoffset", handleTimeOffset);
   }
   else 
   {
@@ -522,8 +543,7 @@ void loop() {
     timeClient.update();
     static String old_time = "";
     //timeRead = timeClient.getFormattedTime();
-    unsigned long offset = 0;
-    unsigned long epoch_time = timeClient.getEpochTime() + offset;
+    unsigned long epoch_time = timeClient.getEpochTime() + timeOffset;
     char time_str[20] ="";
     snprintf(time_str, 20, "%02lu:%02lu:%02lu", (epoch_time/3600)%24, (epoch_time/60)%60, epoch_time%60);
     timeRead = String(time_str);

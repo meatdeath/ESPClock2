@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
   </head>
-  <body>
+  <body onload="javascript:getOffset()">
     <div class="topnav">
       <h1>ESP CLOCK</h1>
     </div>
@@ -72,8 +72,10 @@
         var seconds = hours*3600 + ((hours>0)?minutes:(-minutes)) *60;
         console.log("Offset: " + hours + "h " + minutes + "min => " + seconds + "s");
 
-        var param = "seconds="+seconds;
+        var param = "?seconds="+seconds;
+
         var xhttp = new XMLHttpRequest();
+
         xhttp.onreadystatechange = function() {
           if (this.readyState == 4 && this.status == 200) {
             var seconds = this.responseText;
@@ -85,8 +87,27 @@
             document.getElementById("minutes-offset").value = minutes;
           }
         };
-        xhttp.open("POST", "settimeoffset", true);
-        xhttp.send(param);
+
+        xhttp.open("POST", "timeoffset"+param, true);
+        xhttp.send();
+      }
+      function getOffset() {
+        var xhttp = new XMLHttpRequest();
+
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+            var seconds = this.responseText;
+            var hours = seconds / 3600;
+            var minutes = (seconds%3600) / 60;
+            if (minutes < 0) minutes = -minutes;    
+            console.log("Offset from device: " + hours + "h " + minutes + "min => " + seconds + "s");
+            document.getElementById("hours-offset").value = hours;
+            document.getElementById("minutes-offset").value = minutes;
+          }
+        };
+
+        xhttp.open("GET", "timeoffset", true);
+        xhttp.send();
       }
     </script>
   </body>
