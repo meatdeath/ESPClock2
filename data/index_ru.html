@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <script type="text/javascript" src="index.js"></script>
   </head>
   <body onload="javascript:getOffset()">
     <div class="topnav">
@@ -59,89 +60,34 @@
         </div>
       </div>
     </div>
+    
+    <div class="content">
+      <div class="card-grid">
+        <div class="card">
+          <p class="card-title">НАСТРОЙКА</p>
+          <table>
+            <tr>
+              <td><label class="orientation-text" for="orientation">Ориентация дисплея</label></td>
+              <td>
+                <select name="orientation" id="orientation" onChange="orientationRequest()">
+                  <option value="0">0&#176;</option>
+                  <option value="1">90&#176;</option>
+                  <option value="2">180&#176;</option>
+                  <option value="3">-90&#176;</option>
+                </select>
+              </td>
+            </tr>
+          </table>
+          <p class="state">Состояние: %STATE%</p>
+        </div>
+      </div>
+    </div>
 
     <div class="content">
       <a href="update"><button class="button-update">ОБНОВИТЬ ПРОШИВКУ</button></a>
       <a href="reset"><button class="button-reset">СБРОС</button></a>
     </div>
 
-    <script>
-      getTime();
-      setInterval(function() 
-      {
-        getTime();
-      }, 1000); 
-      function onLangClick(language) {
-        
-        console.log("Set language: " + language);
-
-        var param = "?language="+language;
-
-        var xhttp = new XMLHttpRequest();
-
-        xhttp.onreadystatechange = function() {
-          if (this.readyState == 4 && this.status == 200) {
-            window.location.reload(true);
-          }
-        };
-
-        xhttp.open("POST", "/"+param, true);
-        xhttp.send();
-      }
-      function getTime() {
-        var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function() {
-          if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("time-string").value = this.responseText;
-          }
-        };
-        xhttp.open("GET", "timeread", true);
-        xhttp.send();
-      }
-      function setOffset() {
-        var hours = document.getElementById("hours-offset").value;
-        var minutes = document.getElementById("minutes-offset").value;
-        var seconds = hours*3600 + ((hours>0)?minutes:(-minutes)) *60;
-        console.log("Offset: " + hours + "h " + minutes + "min => " + seconds + "s");
-
-        var param = "?seconds="+seconds;
-
-        var xhttp = new XMLHttpRequest();
-
-        xhttp.onreadystatechange = function() {
-          if (this.readyState == 4 && this.status == 200) {
-            var seconds = this.responseText;
-            var hours = seconds / 3600;
-            var minutes = (seconds%3600) / 60;
-            if (minutes < 0) minutes = -minutes;    
-            console.log("Offset from device: " + hours + "h " + minutes + "min => " + seconds + "s");
-            document.getElementById("hours-offset").value = hours;
-            document.getElementById("minutes-offset").value = minutes;
-          }
-        };
-
-        xhttp.open("POST", "timeoffset"+param, true);
-        xhttp.send();
-      }
-      function getOffset() {
-        var xhttp = new XMLHttpRequest();
-
-        xhttp.onreadystatechange = function() {
-          if (this.readyState == 4 && this.status == 200) {
-            var seconds = this.responseText;
-            var hours = seconds / 3600;
-            var minutes = (seconds%3600) / 60;
-            if (minutes < 0) minutes = -minutes;    
-            console.log("Offset from device: " + hours + "h " + minutes + "min => " + seconds + "s");
-            document.getElementById("hours-offset").value = hours;
-            document.getElementById("minutes-offset").value = minutes;
-          }
-        };
-
-        xhttp.open("GET", "timeoffset", true);
-        xhttp.send();
-      }
-    </script>
   </body>
 </html>
 

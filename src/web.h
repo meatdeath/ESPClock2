@@ -22,10 +22,12 @@ void getNetworks(void);
 void handleRoot(void);
 void handleReset(void);
 void handleCss(void);
+void handleJs(void);
 void handleTimeOffset(void);
 void handleTime(void);
 void handleLedOff(void);
 void handleLedOn(void);
+void handleOrientationRequest(void);
 
 extern String ssid;
 extern String pass;

@@ -7,6 +7,7 @@ String timeRead = "";
 // Stores LED state
 String ledState;
 bool restart = false;
+display_orientation_t orientation = DISPLAY_ORIENTATION_0;
 
 // ****************************************************************************
 
@@ -25,7 +26,8 @@ void initFS()
 
 // ----------------------------------------------------------------------------
 
-void setup() {
+void setup()
+{
     // Serial port for debugging purposes
     Serial.begin(115200);
 
@@ -52,9 +54,9 @@ void setup() {
         mdns_on = MDNS.begin(mdns_name);
 
         if(!mdns_on)
-          Serial.println("Error setting up MDNS responder!");
+            Serial.println("Error setting up MDNS responder!");
         else
-          Serial.printf("mDNS responder started: %s.local\n", mdns_name);
+            Serial.printf("mDNS responder started: %s.local\n", mdns_name);
 
         // Route for root / web page
         server.on("/", handleRoot);
@@ -62,8 +64,10 @@ void setup() {
         server.on("/on", handleLedOn);
         server.on("/off", handleLedOff);
         server.on("/style.css", handleCss);
+        server.on("/index.js", handleJs);
         server.on("/timeread", handleTime);
         server.on("/timeoffset", handleTimeOffset);
+        server.on("/orientationRequest", handleOrientationRequest);
     }
     else 
     {

@@ -32,7 +32,7 @@ bool initWiFi()
     return false;
   }
 
-  Serial.print("Connecting to WiFi \"ssid\"...");
+  Serial.printf("Connecting to WiFi \"%s\"...", ssid.c_str());
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid.c_str(), pass.c_str());
 
@@ -211,6 +211,15 @@ void handleCss(void)
   File file = LittleFS.open("/style.css", "r");
   server.streamFile(file, "text/css");
   file.close();
+}
+
+void handleJs(void)
+{
+    Serial.print("JS url: ");
+    Serial.println(server.uri());
+    File file = LittleFS.open("/index.js", "r");
+    server.streamFile(file, "text/javascript");
+    file.close(); 
 }
 
 void handleWiFiManager(void)
@@ -394,5 +403,44 @@ void getNetworks(void)
     {
         Serial.printf(PSTR("WiFi scan error %d"), networkNum);
     }
+}
+
+void handleOrientationRequest(void)
+{
+    HTTPMethod method = server.method();
+    Serial.print("Method: ");
+    if(method == HTTP_GET)
+    {
+        Serial.println("HTTP_GET");
+    }
+    else if(method == HTTP_POST)
+    {
+        Serial.println("HTTP_POST");
+        int params = server.args();
+        Serial.print("N of params: ");
+        Serial.println(params);
+        if (params == 1)
+        {
+            Serial.print("Param: ");
+            String paramName = server.argName(0);
+            Serial.print(paramName);
+            Serial.print("=");
+            String paramValue = server.arg(0);
+            Serial.println(paramValue);
+
+            if (paramName == "orientation") {
+                orientation = (display_orientation_t)paramValue.toInt();
+                if (orientation < DISPLAY_ORIENTATION_0 || orientation > DISPLAY_ORIENTATION_CCW90)
+                {
+                    orientation = DISPLAY_ORIENTATION_0;
+                }
+                Serial.print("New orientation: ");
+                Serial.println(orientation);
+                prefs.putInt("orientation", orientation);
+            }
+        }
+    }
+  
+    server.send(200, "text/plane", String(orientation));
 }
 
