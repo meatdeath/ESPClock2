@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru-RU">
   <head>
-    <title>ESP CLOCK</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ESP ЧАСЫ</title>
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
@@ -12,7 +13,7 @@
       <table>
         <tr>
           <td class="header-corner-cell"></td>
-          <td class="header-middle-cell"><h1>ESP CLOCK</h1></td>
+          <td class="header-middle-cell"><h1>ESP ЧАСЫ</h1></td>
           <td class="header-corner-cell"><button class="button-ru" onclick="onLangClick('ru')">RU</button><button class="button-en" onclick="onLangClick('en')">EN</button></td>
         </tr>
       </table>
@@ -20,7 +21,7 @@
     <div class="content">
       <div class="card-grid">
         <div class="card">
-          <p class="card-title">TIME</p>
+          <p class="card-title">ВРЕМЯ</p>
           <input type="text" readonly class="time" id="time-string" value="00:00:00">
         </div>
       </div>
@@ -28,19 +29,19 @@
     <div class="content">
       <div class="card-grid">
         <div class="card">
-          <p class="card-title time-offset">TIME OFFSET</p>
+          <p class="card-title time-offset">ВРЕМЕННАЯ РАЗНИЦА</p>
           <table>
             <tr>
-              <td><label class="hours-offset" for="hours-offset">Hours</label></td>
+              <td><label class="hours-offset" for="hours-offset">Часы</label></td>
               <td><input type="number" name="hours-offset" id="hours-offset" value="0" min="-12" max="12"></td>
             </tr>
             <tr>
-              <td><label class="minutes-offset" for="minutes-offset">Minutes</label></td>
+              <td><label class="minutes-offset" for="minutes-offset">Минуты</label></td>
               <td><input type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15"></td>
             </tr>
           </table>
           <!-- <a href="setoffset"> -->
-            <button class="button-update-offset" onclick="setOffset()">UPDATE OFFSET</button>
+            <button class="button-update-offset" onclick="setOffset()">СОХРАНИТЬ</button>
           <!-- </a> -->
         </div>
       </div>
@@ -49,19 +50,19 @@
     <div class="content">
       <div class="card-grid">
         <div class="card">
-          <p class="card-title"><i class="fas fa-lightbulb"></i> GPIO 2 (Blue led)</p>
+          <p class="card-title"><i class="fas fa-lightbulb"></i> ПИН 2 (Синий светодиод)</p>
           <p>
-            <a href="on"><button class="button-on">ON</button></a>
-            <a href="off"><button class="button-off">OFF</button></a>
+            <a href="on"><button class="button-on">ВКЛ</button></a>
+            <a href="off"><button class="button-off">ВЫКЛ</button></a>
           </p>
-          <p class="state">State: %STATE%</p>
+          <p class="state">Состояние: %STATE%</p>
         </div>
       </div>
     </div>
 
     <div class="content">
-      <a href="update"><button class="button-update">FW UPDATE</button></a>
-      <a href="reset"><button class="button-reset">RESET</button></a>
+      <a href="update"><button class="button-update">ОБНОВИТЬ ПРОШИВКУ</button></a>
+      <a href="reset"><button class="button-reset">СБРОС</button></a>
     </div>
 
     <script>

@@ -17,6 +17,10 @@ html {
     overflow: hidden; 
     background-color: #0A1128;
   }
+
+  .topnav table {
+    width: 100%;
+  }
   
   body {  
     margin: 0;
@@ -118,6 +122,7 @@ html {
     min-width: 100px;
     border-radius: 4px;
     transition-duration: 0.4s;
+    cursor: pointer;
   }
   .button-on {
     background-color: #034078;
@@ -156,4 +161,23 @@ html {
     /* Scaling button to 0.98 to its original size */
     box-shadow: 3px 2px 16px 1px rgba(0, 0, 0, 0.24);
     /* Lowering the shadow */
+}
+
+.header-corner-cell {
+  width: 90px;
+  padding-right: 16px;
+}
+
+.button-ru, .button-en {
+  min-width: 20px;
+  padding: 4px;
+}
+
+.button-ru {
+  background-color: darkred;
+}
+
+.button-en {
+  background-color: navy;
+  margin-left: 8px;
 }
