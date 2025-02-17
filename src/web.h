@@ -28,6 +28,7 @@ void handleTime(void);
 void handleLedOff(void);
 void handleLedOn(void);
 void handleOrientationRequest(void);
+void handleWifiManagerJs(void);
 
 extern String ssid;
 extern String pass;

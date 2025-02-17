@@ -5,10 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" type="text/css" href="style.css">
+  <script type="text/javascript" src="wifimanager.js"></script>
 </head>
 <body>
   <div class="topnav">
-    <h1>ESP CLOCK Wi-Fi Manager</h1>
+    <table>
+      <tr>
+        <td class="header-corner-cell"></td>
+        <td class="header-middle-cell"><h1>ESP CLOCK - WiFi Manager</h1></td>
+        <td class="header-corner-cell"><button class="button-ru" onclick="onLangClick('ru')">RU</button><button class="button-en" onclick="onLangClick('en')">EN</button></td>
+      </tr>
+    </table>
   </div>
   <div class="content">
     <div class="card-grid">
@@ -17,10 +24,10 @@
         <form action="/" method="POST">
           <table>
             <tr>
-              <td>
+              <td class="first-column">
                 <label for="ssid">SSID</label>
               </td>
-              <td>
+              <td class="parameter-column">
                 <!--<input type="text" id ="ssid" name="ssid">-->
                 <select id="ssid" name="ssid">
                     <option value="">-- Please choose WiFi SSID from the list --</option>
@@ -29,11 +36,12 @@
               </td>
             </tr>
             <tr>
-              <td>
+              <td class="first-column">
                 <label for="pass">Password</label>
               </td>
-              <td>
+              <td class="parameter-column">
                 <input type="password" id ="pass" name="pass">
+                <div style="text-align:left"><input type="checkbox" onclick="showPass()">Show Password</div>
               </td>
             </tr>
           </table>

@@ -88,6 +88,7 @@ void setup()
         // Web Server Root URL
         server.on("/", handleWiFiManager);
         server.on("/style.css", handleCss);
+        server.on("/wifimanager.js", handleWifiManagerJs);
     }
 
     ElegantOTA.begin(&server);    // Start ElegantOTA

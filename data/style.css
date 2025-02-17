@@ -79,8 +79,8 @@ html {
     font-size: large;
     width: 50%;
     padding: 12px;
-    margin: 8px 16px;
-    display: inline-block;
+    display: block;
+    width: 100%;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
@@ -90,8 +90,8 @@ html {
     font-size: large;
     width: 50%;
     padding: 12px;
-    margin: 8px 16px 8px 16px;
-    display: inline-block;
+    display: block;
+    width: 100%;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
@@ -180,4 +180,16 @@ html {
 .button-en {
   background-color: navy;
   margin-left: 8px;
+}
+
+.show-pass-icon {
+  font-size: x-large;
+}
+
+.first-column {
+  width: 40%;
+}
+
+.parameter-column {
+  padding: 8px;
 }

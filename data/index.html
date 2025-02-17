@@ -32,12 +32,12 @@
           <p class="card-title time-offset">TIME OFFSET</p>
           <table>
             <tr>
-              <td><label class="hours-offset" for="hours-offset">Hours</label></td>
-              <td><input type="number" name="hours-offset" id="hours-offset" value="0" min="-12" max="12"></td>
+              <td class="first-column"><label class="hours-offset" for="hours-offset">Hours</label></td>
+              <td class="parameter-column"><input class="parameter-column" type="number" name="hours-offset" id="hours-offset" value="0" min="-12" max="12"></td>
             </tr>
             <tr>
-              <td><label class="minutes-offset" for="minutes-offset">Minutes</label></td>
-              <td><input type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15"></td>
+              <td class="first-column"><label class="minutes-offset" for="minutes-offset">Minutes</label></td>
+              <td class="parameter-column"><input class="parameter-column" type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15"></td>
             </tr>
           </table>
           <!-- <a href="setoffset"> -->
@@ -66,8 +66,8 @@
           <p class="card-title">SETUP</p>
           <table>
             <tr>
-              <td><label class="orientation-text" for="orientation">Display Orientation</label></td>
-              <td>
+              <td class="first-column"><label class="orientation-text" for="orientation">Display Orientation</label></td>
+              <td class="parameter-column">
                 <select name="orientation" id="orientation" onChange="orientationRequest(this)">
                   <option value="0">0&#176;</option>
                   <option value="1">90&#176;</option>
