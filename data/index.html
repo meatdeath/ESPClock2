@@ -21,28 +21,30 @@
     <div class="content">
       <div class="card-grid">
         <div class="card">
-          <p class="card-title">TIME</p>
+          <p class="card-title">CORRECTED TIME (BASED ON TIME ZONE)</p>
           <input type="text" readonly class="time" id="time-string" value="00:00:00">
-        </div>
+        <!-- </div>
       </div>
     </div>
     <div class="content">
       <div class="card-grid">
-        <div class="card">
-          <p class="card-title time-offset">TIME OFFSET</p>
+        <div class="card"> -->
+          <p class="card-title time-offset">TIME OFFSET (TIMEZONE FROM GMT)</p>
           <table>
             <tr>
               <td class="first-column"><label class="hours-offset" for="hours-offset">Hours</label></td>
-              <td class="parameter-column"><input class="parameter-column" type="number" name="hours-offset" id="hours-offset" value="0" min="-12" max="12"></td>
+              <td class="parameter-column">
+                <input class="parameter-column" type="number" name="hours-offset" id="hours-offset" value="0" min="-12" max="12" onchange="setOffset()">
+              </td>
             </tr>
             <tr>
               <td class="first-column"><label class="minutes-offset" for="minutes-offset">Minutes</label></td>
-              <td class="parameter-column"><input class="parameter-column" type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15"></td>
+              <td class="parameter-column">
+                <input class="parameter-column" type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15" onchange="setOffset()">
+              </td>
             </tr>
           </table>
-          <!-- <a href="setoffset"> -->
-            <button class="button-update-offset" onclick="setOffset()">UPDATE OFFSET</button>
-          <!-- </a> -->
+          <!-- <button class="button-update-offset" onclick="setOffset()">UPDATE OFFSET</button> -->
         </div>
       </div>
     </div>

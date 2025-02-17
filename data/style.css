@@ -50,6 +50,7 @@ html {
   
   .card-title { 
     margin: 0;
+    margin-top: 8px;
     font-size: 1.2rem;
     font-weight: bold;
     color: #034078
@@ -112,6 +113,7 @@ html {
     font-size: 1.2rem;
     color: #2812a2;
     text-align: center;
+    margin: 16px 0;
   }
   button {
     border: none;
@@ -191,5 +193,5 @@ html {
 }
 
 .parameter-column {
-  padding: 8px;
+  padding: 8px 0;
 }
