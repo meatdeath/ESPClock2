@@ -2,15 +2,24 @@
 #define __MAIN_H__
 
 #include <Arduino.h>
+
+#ifdef ESP8266
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
+#else
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#endif
+
+#include <WiFiClient.h>
 #include <ElegantOTA.h>
 #include "LittleFS.h"
-#include <ESP8266mDNS.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <Preferences.h>
+
 #include "web.h"
 #include "ota.h"
 
@@ -22,7 +31,11 @@ typedef enum display_orientation_en {
 } display_orientation_t;
 
 // Set LED GPIO
+#ifdef ESP8266
 #define BLUE_LED_PIN    2
+#else
+#define BLUE_LED_PIN    22
+#endif
 
 extern Preferences prefs;
 

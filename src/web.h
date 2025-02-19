@@ -39,7 +39,12 @@ extern const char* mdns_name;
 extern bool accessPoint;
 extern bool mdns_on;
 
+#ifdef ESP8266
 extern ESP8266WebServer server;
+#else
+extern WebServer server;
+#endif
+
 //extern WiFiUDP ntpUDP;
 extern NTPClient timeClient;
 
