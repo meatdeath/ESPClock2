@@ -9,8 +9,9 @@ String ledState;
 bool restart = false;
 display_orientation_t orientation = DISPLAY_ORIENTATION_0;
 
-
+#ifdef ESP32
 void browseService(const char * service, const char * proto);
+#endif
 
 // ****************************************************************************
 
