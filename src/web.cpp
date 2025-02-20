@@ -17,7 +17,12 @@ networkInfo_t networkInfo[MAX_NETWORKS];
 bool accessPoint = false;
 bool mdns_on = false;
 
+#ifdef ESP8266
 ESP8266WebServer server(80);
+#else
+WebServer server(80);
+#endif
+
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
@@ -397,38 +402,54 @@ void getNetworks(void)
             int32_t channel;
             bool hidden;
 
-            WiFi.getNetworkInfo(i, networkInfo[i].ssid, encryptionType, rssi, bssid, channel, hidden);
-            networkInfo[i].rssi = rssi;
+            #ifdef ESP8266
+                WiFi.getNetworkInfo(i, networkInfo[i].ssid, encryptionType, rssi, bssid, channel, hidden);
+                networkInfo[i].rssi = rssi;
 
-            // get extra info
-            const bss_info *bssInfo = WiFi.getScanInfoByIndex(i);
-            String phyMode;
-            const char *wps = "";
-            if (bssInfo) {
-                phyMode.reserve(12);
-                phyMode = F("802.11");
-                String slash;
-                if (bssInfo->phy_11b) {
-                    phyMode += 'b';
-                    slash = '/';
+                // get extra info
+                const bss_info *bssInfo = WiFi.getScanInfoByIndex(i);
+                String phyMode;
+                const char *wps = "";
+                if (bssInfo) {
+                    phyMode.reserve(12);
+                    phyMode = F("802.11");
+                    String slash;
+                    if (bssInfo->phy_11b) {
+                        phyMode += 'b';
+                        slash = '/';
+                    }
+                    if (bssInfo->phy_11g) {
+                        phyMode += slash + 'g';
+                        slash = '/';
+                    }
+                    if (bssInfo->phy_11n) {
+                        phyMode += slash + 'n';
+                    }
+                    if (bssInfo->wps) {
+                        wps = PSTR("WPS");
+                    }
                 }
-                if (bssInfo->phy_11g) {
-                    phyMode += slash + 'g';
-                    slash = '/';
-                }
-                if (bssInfo->phy_11n) {
-                    phyMode += slash + 'n';
-                }
-                if (bssInfo->wps) {
-                    wps = PSTR("WPS");
-                }
-            }
-            networkInfo[i].description = 
-                networkInfo[i].ssid + ((encryptionType == ENC_TYPE_NONE)? " " : " (encrypted) ") +
-                " [CH " + String(channel) + "] [" + 
-                String(bssid[0],16) + ":" +  String(bssid[1],16) + ":" + String(bssid[2],16) + ":" + String(bssid[3],16) + ":" + String(bssid[4],16) + ":" + String(bssid[5],16) + "] " + 
-                String(rssi) + "dbm" + (hidden ? " H " : " V ") + phyMode + " " + wps;
+                networkInfo[i].description = 
+                    networkInfo[i].ssid + ((encryptionType == ENC_TYPE_NONE)? " " : " (encrypted) ") +
+                    " [CH " + String(channel) + "] [" + 
+                    String(bssid[0],16) + ":" +  String(bssid[1],16) + ":" + String(bssid[2],16) + ":" + String(bssid[3],16) + ":" + String(bssid[4],16) + ":" + String(bssid[5],16) + "] " + 
+                    String(rssi) + "dbm" + (hidden ? " H " : " V ") + phyMode + " " + wps;
+            #else // ESP32
+                rssi = WiFi.RSSI(i);
+                encryptionType = WiFi.encryptionType(i);
+                channel = WiFi.channel(i);
+                bssid = WiFi.BSSID(i);
 
+                networkInfo[i].ssid = WiFi.SSID(i);
+                networkInfo[i].rssi = rssi;
+                networkInfo[i].description = 
+                    networkInfo[i].ssid + ((encryptionType == WIFI_AUTH_OPEN)? " " : " (encrypted) ") +
+                    " [CH " + String(channel) + "] [" + 
+                    String(bssid[0],16) + ":" + String(bssid[1],16) + ":" + 
+                    String(bssid[2],16) + ":" + String(bssid[3],16) + ":" + 
+                    String(bssid[4],16) + ":" + String(bssid[5],16) + "] " + 
+                    String(rssi) + "dbm";
+            #endif
             //Serial.println(networkInfo[i].description);
             if (i > 0)
             {
