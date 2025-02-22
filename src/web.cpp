@@ -509,18 +509,18 @@ void handleOrientationRequest(void)
             Serial.println(paramValue);
 
             if (paramName == "orientation") {
-                orientation = (display_orientation_t)paramValue.toInt();
-                if (orientation < DISPLAY_ORIENTATION_0 || orientation > DISPLAY_ORIENTATION_CCW90)
+                display_orientation = (display_orientation_t)paramValue.toInt();
+                if (display_orientation < DISPLAY_ORIENTATION_0 || display_orientation > DISPLAY_ORIENTATION_CCW90)
                 {
-                    orientation = DISPLAY_ORIENTATION_0;
+                    display_orientation = DISPLAY_ORIENTATION_0;
                 }
                 Serial.print("New orientation: ");
-                Serial.println(orientation);
-                prefs.putInt("orientation", orientation);
+                Serial.println(display_orientation);
+                prefs.putInt("orientation", display_orientation);
             }
         }
     }
   
-    server.send(200, "text/plane", String(orientation));
+    server.send(200, "text/plane", String(display_orientation));
 }
 
