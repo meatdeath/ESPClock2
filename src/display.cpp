@@ -4,15 +4,16 @@
 // ----------------------------------------------------------------------------
 
 #ifdef ESP32
-uint8_t dataPin   = 21;
-uint8_t selectPin = 22;
-uint8_t clockPin  = 23;
-uint8_t count     = 1;
-#else
-
+#define SPI_DATA_PIN    21
+#define SPI_CS_PIN      22
+#define SPI_CLK_PIN     23
+#else // ESP8266
+#define SPI_DATA_PIN    D8
+#define SPI_CS_PIN      D7
+#define SPI_CLK_PIN     D5
 #endif
 
-MATRIX7219 mx(dataPin, selectPin, clockPin, NUMBER_OF_MATRIX);
+MATRIX7219 mx(SPI_DATA_PIN, SPI_CS_PIN, SPI_CLK_PIN, NUMBER_OF_MATRIX);
 
 display_orientation_t display_orientation = DISPLAY_ORIENTATION_0;
 
