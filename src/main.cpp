@@ -39,13 +39,26 @@ void setup()
     // Set GPIO 2 as an OUTPUT
     pinMode(BLUE_LED_PIN, OUTPUT);
     digitalWrite(BLUE_LED_PIN, HIGH);
-    
+
+    Serial.print("Display init... ");
+    display_Init();
+    Serial.println("done");
+
     // Load values saved in LittleFS
+    Serial.print("Reading preferencies... ");
     prefs.begin("setup");
     timeOffset = prefs.getInt("timeOffset", 0);
     ssid = prefs.getString("ssid","");
     pass = prefs.getString("pass","");
     language = prefs.getString("language","en");
+    Serial.println("done");
+
+    display_ClockString();
+    delay(500);
+    display_VersionString();
+    delay(500);
+    display_StartingString();
+
     Serial.print("SSID:");
     Serial.println(ssid);
     Serial.print("PASS:");
@@ -120,12 +133,16 @@ void loop()
         //timeRead = timeClient.getFormattedTime();
         unsigned long epoch_time = timeClient.getEpochTime() + timeOffset;
         char time_str[20] ="";
-        snprintf(time_str, 20, "%02lu:%02lu:%02lu", (epoch_time/3600)%24, (epoch_time/60)%60, epoch_time%60);
+        uint8_t hours = (epoch_time/3600)%24;
+        uint8_t minutes = (epoch_time/60)%60;
+        uint8_t seconds = epoch_time%60;
+        snprintf(time_str, 20, "%02d:%02d:%02d", hours, minutes, seconds);
         timeRead = String(time_str);
         if (timeRead != old_time)
         {
             Serial.println(timeRead);
             old_time = timeRead;
+            display_Time(hours, minutes, seconds, DISPLAY_FORMAT_24H);
         }
     }
     //ElegantOTA.loop();

@@ -1,6 +1,5 @@
 #include "main.h"
 
-
 // ----------------------------------------------------------------------------
 
 #ifdef ESP32
@@ -13,13 +12,142 @@
 #define SPI_CLK_PIN     D5
 #endif
 
+#define DISPLAY_BUF_SIZE    (8*NUMBER_OF_MATRIX)
+
+uint8_t display_buf[DISPLAY_BUF_SIZE] = {0};
+
 MATRIX7219 mx(SPI_DATA_PIN, SPI_CS_PIN, SPI_CLK_PIN, NUMBER_OF_MATRIX);
 
 display_orientation_t display_orientation = DISPLAY_ORIENTATION_0;
 
-#define DISPLAY_BUF_SIZE    (8*NUMBER_OF_MATRIX)
+// ----------------------------------------------------------------------------
 
-uint8_t display_buf[DISPLAY_BUF_SIZE] = {0};
+#pragma pack(push,1)
+
+typedef struct _digits_st 
+{
+    byte size;
+    byte array[5];
+} 
+digits_t;
+
+typedef struct _screens_st 
+{
+    byte size;
+    byte array[32];
+} 
+screens_t;
+
+typedef union _display_item_un 
+{
+    digits_t digit;
+    screens_t screen;
+} 
+display_item_t;
+
+#pragma pack(pop)
+
+// ----------------------------------------------------------------------------
+
+const digits_t digits [] PROGMEM = 
+{
+    { 5, { 0b01111110, 
+           0b10000001,
+           0b10000001, 
+           0b10000001, 
+           0b01111110 } },   //0
+
+    { 5, { 0b00000000, 
+           0b00000100, 
+           0b00000010, 
+           0b11111111, 
+           0b00000000 } },   //1
+
+    { 5, { 0b10000010, 
+           0b11000001, 
+           0b10100001, 
+           0b10010001, 
+           0b10001110 } },   //2
+
+    { 5, { 0b01000010, 
+           0b10000001, 
+           0b10001001, 
+           0b10001001, 
+           0b01110110 } },   //3
+
+    { 5, { 0b00110000, 
+           0b00101000, 
+           0b00100100, 
+           0b00100010, 
+           0b11111111 } },   //4
+
+    { 5, { 0b01001111, 
+           0b10001001, 
+           0b10001001, 
+           0b10001001, 
+           0b01110001 } },   //5
+
+    { 5, { 0b01111110, 
+           0b10001001, 
+           0b10001001, 
+           0b10001001, 
+           0b01110010 } },   //6
+
+    { 5, { 0b00000001, 
+           0b11100001, 
+           0b00010001, 
+           0b00001001, 
+           0b00000111 } },   //7
+
+    { 5, { 0b01110110, 
+           0b10001001, 
+           0b10001001, 
+           0b10001001, 
+           0b01110110 } },   //8
+
+    { 5, { 0b01001110, 
+           0b10010001, 
+           0b10010001, 
+           0b10010001, 
+           0b01111110 } },   //9
+
+    { 1, { 0b00100100 } },   //:
+
+    { 2, { 0b00000011, 
+           0b00000011 } },   //.
+
+    { 3, { 0x10, 0x10, 0x10 } },   // -
+    { 4, { 0x06, 0x09, 0x09, 0x06 } },   // Degree symbol
+    { 5, { 0x7E, 0x81, 0x81, 0x81, 0x42 } },   // C (Celcius)
+    { 5, { 0xF8, 0x30, 0x40, 0x30, 0xF8 } },   // m
+};
+
+// ----------------------------------------------------------------------------
+
+const screens_t screens [] PROGMEM = 
+{
+    {   // Zapusk...
+        32,
+        {
+            0x22, 0x49, 0x49, 0x36, 0x00, 0x78, 0x24, 0x24, 0x78, 0x00, 0x7c, 0x04, 0x04, 0x7c, 0x00, 0x0c,
+            0x50, 0x50, 0x3c, 0x00, 0x38, 0x44, 0x44, 0x28, 0x00, 0x7c, 0x10, 0x28, 0x44, 0x00, 0x00, 0x00
+        }
+    },
+    {   // Starting...
+        32,
+        {
+            0x7E, 0x81, 0x81, 0x81, 0x62, 0x00, 0x04, 0xfC, 0x04, 0x00, 0xF8, 0x24, 0x24, 0xFC, 0x00, 0xFC, 
+            0x24, 0x24, 0x18, 0x00, 0x04, 0xfC, 0x04, 0x00, 0x00, 0x80, 0x00, 0x00, 0x80, 0x00, 0x00, 0x80 
+        }
+    },
+    {   // Clock
+        32, 
+        {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x10, 0x10, 0x10, 0xff, 0x00, 0xf8, 0x24, 0x24, 0xfc, 0x00,
+            0x78, 0x84, 0x84, 0x48, 0x00, 0xfc, 0x90, 0x90, 0x60, 0x00, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00
+        }
+    },
+};
 
 // ----------------------------------------------------------------------------
 
@@ -147,22 +275,26 @@ void display_SetBrightness(uint8_t percentage)
 
 void display_Pressure(uint16_t pressure) 
 {
+    uint8_t size;
     uint8_t i, offset = 0;
-    uint8_t symbols[] = {
+    
+    uint8_t symbols[] = 
+    {
         (uint8_t)((pressure/100)%10),
         (uint8_t)((pressure/10)%10),
         (uint8_t)(pressure%10),
         DISPLAY_SYMBOL_M,
         DISPLAY_SYMBOL_M
     };
-    uint8_t size;
     
     display_Clear();
 
-    for(int j = 0; j < 4; j++) {
+    for(int j = 0; j < 4; j++) 
+    {
         size = pgm_read_byte(&(digits[symbols[j]].size));
-        for( i = 0; i < size; i++ ) {
-            display_Row(offset+i, pgm_read_byte(&(digits[symbols[j]].array[i])) );
+        for( i = 0; i < size; i++ ) 
+        {
+            display_Row(offset+i, pgm_read_byte(&(digits[symbols[j]].array[i])));
         }
         offset += size + 2;        
     }
@@ -172,57 +304,69 @@ void display_Pressure(uint16_t pressure)
 
 // ----------------------------------------------------------------------------
 
-void display_Temperature(int temperature) {
+void display_Temperature(int temperature) 
+{
     uint8_t i, offset = 0;
     bool negative = false;
 
     display_Clear();
 
     uint8_t size;
-    if( temperature < 0 ) {
+    if( temperature < 0 ) 
+    {
         negative = true;
         temperature = -temperature;
     }
 
     uint8_t t1 = temperature / 10;
     uint8_t t2 = temperature % 10;
-    if( t1 == 0 ) {
+    if( t1 == 0 ) 
+    {
         size = pgm_read_byte(&(digits[t1].size));
-        for( i = 0; i < size; i++ ) {
-            display_Row(offset+i, 0x00 );
+        for( i = 0; i < size; i++ ) 
+        {
+            display_Row(offset+i, 0x00);
         }
         offset += size + 2;
     }
 
     size = pgm_read_byte(&(digits[DISPLAY_SYMBOL_DASH].size));
-    if( negative ) {
-        for( i = 0; i < size; i++ ) {
-            display_Row(offset+i, pgm_read_byte(&(digits[DISPLAY_SYMBOL_DASH].array[i])) );
+    if( negative )
+    {
+        for( i = 0; i < size; i++ ) 
+        {
+            display_Row(offset+i, pgm_read_byte(&(digits[DISPLAY_SYMBOL_DASH].array[i])));
         }
-    } else {
-        for( i = 0; i < size; i++ ) {
+    } 
+    else 
+    {
+        for( i = 0; i < size; i++ ) 
+        {
             display_Row(offset+i, 0x00);
         }
     }
     offset += size + 2;
 
-
-    if( t1 ) {
+    if( t1 ) 
+    {
         size = pgm_read_byte(&(digits[t1].size));
-        for( i = 0; i < size; i++ ) {
-            display_Row(offset+i, pgm_read_byte(&(digits[t1].array[i])) );
+        for (i = 0; i < size; i++) 
+        {
+            display_Row(offset+i, pgm_read_byte(&(digits[t1].array[i])));
         }
         offset += size + 2;
     }
 
     size = pgm_read_byte(&(digits[t2].size));
-    for( i = 0; i < size; i++ ) {
-        display_Row(offset+i, pgm_read_byte(&(digits[t2].array[i])) );
+    for (i = 0; i < size; i++) 
+    {
+        display_Row(offset+i, pgm_read_byte(&(digits[t2].array[i])));
     }
     offset += size + 2;
     size = pgm_read_byte(&(digits[DISPLAY_SYMBOL_C].size));
-    for( i = 0; i < size; i++ ) {
-        display_Row(offset+i, pgm_read_byte(&(digits[DISPLAY_SYMBOL_C].array[i])) );
+    for( i = 0; i < size; i++ ) 
+    {
+        display_Row(offset+i, pgm_read_byte(&(digits[DISPLAY_SYMBOL_C].array[i])));
     }
     
     display_Commit();
@@ -233,95 +377,108 @@ void display_Temperature(int temperature) {
 void display_Time(byte hours, byte minutes, byte seconds, byte format) 
 {
     byte i;
-
-    if( format == DISPLAY_FORMAT_12H ) hours %= 12;
+    if (format == DISPLAY_FORMAT_12H) hours %= 12;
     else hours %= 24;
-
     byte h1 = hours/10;
     byte h2 = hours%10;
     byte m1 = minutes/10;
     byte m2 = minutes%10;
-    
     display_Clear();
 #ifndef HIDE_HOUR_LEADING_ZERO
-    if( h1 != 0 ) {
+    if (h1 != 0) 
+    {
 #endif
-        for( i = 0; i < pgm_read_byte(&(digits[h1].size)); i++ ) {
-            display_Row(i, pgm_read_byte(&(digits[h1].array[i])) );
+        for (i = 0; i < pgm_read_byte(&(digits[h1].size)); i++) 
+        {
+            display_Row(i, pgm_read_byte(&(digits[h1].array[i])));
         }
 #ifndef HIDE_HOUR_LEADING_ZERO
-    }else {
-        for( i = 0; i < pgm_read_byte(&(digits[h1].size)); i++ ) {
-            display_Row(i, 0 );
+    }
+    else 
+    {
+        for (i = 0; i < pgm_read_byte(&(digits[h1].size)); i++) 
+        {
+            display_Row(i, 0);
         }
     }
 #endif
-    //ledMatrix.setColumn(i,0); // space
-    //hours low
-    for( i = 0; i < pgm_read_byte(&(digits[h2].size)); i++ ) {
-        display_Row(7+i, pgm_read_byte(&(digits[h2].array[i])) );
+    //display_Row(i,0); // space
+    // hours low
+    for (i = 0; i < pgm_read_byte(&(digits[h2].size)); i++) 
+    {
+        display_Row(7+i, pgm_read_byte(&(digits[h2].array[i])));
     }
-    //ledMatrix.setColumn(7+i,0); // space
-    //colon
-    for( i = 0; i < digits[DISPLAY_SYMBOL_COLON].size; i++ ) {
-        display_Row(15+i, (seconds&1)?pgm_read_byte(&(digits[DISPLAY_SYMBOL_COLON].array[i])):0 );
+    //display_Row(7+i,0); // space
+    // colon
+    for (i = 0; i < digits[DISPLAY_SYMBOL_COLON].size; i++) 
+    {
+        display_Row(15+i, (seconds&1)?pgm_read_byte(&(digits[DISPLAY_SYMBOL_COLON].array[i])):0);
     }
-    //ledMatrix.setColumn(15+i,0); // space
+    //display_Row(15+i,0); // space
     // minutes high
-    for( i = 0; i < pgm_read_byte(&(digits[m1].size)); i++ ) {
-        display_Row(19+i, pgm_read_byte(&(digits[m1].array[i])) );
+    for (i = 0; i < pgm_read_byte(&(digits[m1].size)); i++) 
+    {
+        display_Row(19+i, pgm_read_byte(&(digits[m1].array[i])));
     }
-    //ledMatrix.setColumn(19+i,0); // space
+    //display_Row(19+i,0); // space
     // minutes low
-    for( i = 0; i < pgm_read_byte(&(digits[m2].size)); i++ ) {
-        display_Row(26+i, pgm_read_byte(&(digits[m2].array[i])) );
-    }
-    
-    display_Commit();
-}
-
-// ----------------------------------------------------------------------------
-
-void display_StartingString(void) {
-    for( byte i = 0; i < pgm_read_byte(&(screens[DISPLAY_STARTING].size)); i++ ) {
-        display_Row(i, pgm_read_byte(&(screens[DISPLAY_STARTING].array[i])) );
-    }
-
-    display_Commit();
-}
-
-// ----------------------------------------------------------------------------
-
-void display_ClockString(void) {
-    for( byte i = 0; i < pgm_read_byte(&(screens[DISPLAY_CLOCK_STR].size)); i++ ) {
-        display_Row(i, pgm_read_byte(&(screens[DISPLAY_CLOCK_STR].array[i])) );
+    for (i = 0; i < pgm_read_byte(&(digits[m2].size)); i++) 
+    {
+        display_Row(26+i, pgm_read_byte(&(digits[m2].array[i])));
     }
     display_Commit();
 }
 
 // ----------------------------------------------------------------------------
 
-void display_VersionString(void) {
-    const byte v_dot[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xfc,0x94,0x94,0x94,0x68,0x00,0x80,0x00};
-    byte j = 0;
-    for( byte i = 0; i < sizeof(v_dot); i++, j++ ) {
+void display_StartingString(void) 
+{
+    display_Clear();
+    for (byte i = 0; i < pgm_read_byte(&(screens[DISPLAY_STARTING].size)); i++) 
+    {
+        display_Row(i, pgm_read_byte(&(screens[DISPLAY_STARTING].array[i])));
+    }
+    display_Commit();
+}
+
+// ----------------------------------------------------------------------------
+
+void display_ClockString(void) 
+{
+    display_Clear();
+    for (byte i = 0; i < pgm_read_byte(&(screens[DISPLAY_CLOCK_STR].size)); i++) 
+    {
+        display_Row(i, pgm_read_byte(&(screens[DISPLAY_CLOCK_STR].array[i])));
+    }
+    display_Commit();
+}
+
+// ----------------------------------------------------------------------------
+
+void display_VersionString(void) 
+{
+    display_Clear();
+    const byte v_dot[] = {0xfc,0x94,0x94,0x94,0x68,0x00,0x80,0x00};
+    byte j = 7;
+    for (byte i = 0; i < sizeof(v_dot); i++, j++) 
+    {
         display_Row(j, v_dot[i]);
     }
-    for( byte i = 0; i < pgm_read_byte(&(digits[VERSION_MAJOR].size)); i++, j++ ) {
-        display_Row(j, pgm_read_byte(&(digits[VERSION_MAJOR].array[i])) );
+    for (byte i = 0; i < pgm_read_byte(&(digits[VERSION_MAJOR].size)); i++, j++) 
+    {
+        display_Row(j, pgm_read_byte(&(digits[VERSION_MAJOR].array[i])));
     }
     display_Row(j++, 0x00);
-    display_Row(j++, 0x80);
+    display_Row(j++, 0x80); // dot
     display_Row(j++, 0x00);
-    
-    for( byte i = 0; i < pgm_read_byte(&(digits[VERSION_MINOR].size)); i++, j++ ) {
-        display_Row(j, pgm_read_byte(&(digits[VERSION_MINOR].array[i])) );
+    for (byte i = 0; i < pgm_read_byte(&(digits[VERSION_MINOR].size)); i++, j++) 
+    {
+        display_Row(j, pgm_read_byte(&(digits[VERSION_MINOR].array[i])));
     }
-
-    while( j < 32 ) {
+    while( j < 32 ) 
+    {
         display_Row(j++, 0x00);
     }
-    
     display_Commit();
 }
 
