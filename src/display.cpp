@@ -15,12 +15,14 @@
 #define DISPLAY_BUF_SIZE    (8*NUMBER_OF_MATRIX)
 
 uint8_t display_buf[DISPLAY_BUF_SIZE] = {0};
-
 MATRIX7219 mx(SPI_DATA_PIN, SPI_CS_PIN, SPI_CLK_PIN, NUMBER_OF_MATRIX);
 
-display_orientation_t display_orientation = DISPLAY_ORIENTATION_CW90;
-
+// setup variables
+matrix_orientation_t matrix_orientation = MATRIX_ORIENTATION_CW90;
 bool matrix_straight_order = false;
+bool display_hide_leading_zero = false;
+
+bool time_format = TIME_FORMAT_24H;
 
 // ----------------------------------------------------------------------------
 
@@ -180,14 +182,14 @@ void display_Row(uint8_t row, uint8_t data)
 
 void display_Commit()
 {
-    if (display_orientation == DISPLAY_ORIENTATION_0)
+    if (matrix_orientation == MATRIX_ORIENTATION_0)
     {
         for (int i = 0; i < DISPLAY_BUF_SIZE; i++)
         {
             mx.setRow(i%8+1, display_buf[i], i/8+1);
         }
     }
-    else if (display_orientation == DISPLAY_ORIENTATION_CW180)
+    else if (matrix_orientation == MATRIX_ORIENTATION_CW180)
     {
         for (int m = 0; m < NUMBER_OF_MATRIX; m++)
         {
@@ -197,7 +199,7 @@ void display_Commit()
             }
         }
     }
-    else if (display_orientation == DISPLAY_ORIENTATION_CW90)
+    else if (matrix_orientation == MATRIX_ORIENTATION_CW90)
     {
         for (int m = 0; m < NUMBER_OF_MATRIX; m++)
         {
@@ -214,7 +216,7 @@ void display_Commit()
             }
         }
     }
-    else // if (display_orientation == DISPLAY_ORIENTATION_CCW90)
+    else // if (matrix_orientation == MATRIX_ORIENTATION_CCW90)
     {
         for (int m = 0; m < NUMBER_OF_MATRIX; m++)
         {
@@ -382,34 +384,32 @@ void display_Temperature(int temperature)
 
 // ----------------------------------------------------------------------------
 
-void display_Time(byte hours, byte minutes, byte seconds, byte format) 
+void display_Time(byte hours, byte minutes, byte seconds) 
 {
     byte i;
-    if (format == DISPLAY_FORMAT_12H) hours %= 12;
+    if (time_format == TIME_FORMAT_12H) hours %= 12;
     else hours %= 24;
     byte h1 = hours/10;
     byte h2 = hours%10;
     byte m1 = minutes/10;
     byte m2 = minutes%10;
     display_Clear();
-#ifndef HIDE_HOUR_LEADING_ZERO
-    if (h1 != 0) 
-    {
-#endif
-        for (i = 0; i < pgm_read_byte(&(digits[h1].size)); i++) 
-        {
-            display_Row(i, pgm_read_byte(&(digits[h1].array[i])));
-        }
-#ifndef HIDE_HOUR_LEADING_ZERO
-    }
-    else 
+
+    if (h1 == 0 && display_hide_leading_zero)
     {
         for (i = 0; i < pgm_read_byte(&(digits[h1].size)); i++) 
         {
             display_Row(i, 0);
         }
     }
-#endif
+    else
+    {
+        for (i = 0; i < pgm_read_byte(&(digits[h1].size)); i++) 
+        {
+            display_Row(i, pgm_read_byte(&(digits[h1].array[i])));
+        }
+    }
+    
     //display_Row(i,0); // space
     // hours low
     for (i = 0; i < pgm_read_byte(&(digits[h2].size)); i++) 

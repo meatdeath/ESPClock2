@@ -142,7 +142,7 @@ void loop()
         {
             Serial.println(timeRead);
             old_time = timeRead;
-            display_Time(hours, minutes, seconds, DISPLAY_FORMAT_24H);
+            display_Time(hours, minutes, seconds);
         }
     }
     //ElegantOTA.loop();

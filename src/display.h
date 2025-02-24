@@ -6,28 +6,23 @@
 
 #define NUMBER_OF_MATRIX        4
 
-#define DISPLAY_FORMAT_24H      0
-#define DISPLAY_FORMAT_12H      1
+#define TIME_FORMAT_24H         0
+#define TIME_FORMAT_12H         1
 
 #define CLOCK_SHOW_TIME         6
 #define TEMPERATURE_SHOW_TIME   3
 #define PRESSURE_SHOW_TIME      3
 
-#ifdef ESP8266
-#define CS_PIN                  15
-#else
-#define CS_PIN                  0
-#endif
 //#define HIDE_HOUR_LEADING_ZERO
 
 // ----------------------------------------------------------------------------
 
-typedef enum display_orientation_en {
-    DISPLAY_ORIENTATION_0 = 0,
-    DISPLAY_ORIENTATION_CW90,
-    DISPLAY_ORIENTATION_CW180,
-    DISPLAY_ORIENTATION_CCW90
-} display_orientation_t;
+typedef enum matrix_orientation_en {
+    MATRIX_ORIENTATION_0 = 0,
+    MATRIX_ORIENTATION_CW90,
+    MATRIX_ORIENTATION_CW180,
+    MATRIX_ORIENTATION_CCW90
+} matrix_orientation_t;
 
 
 
@@ -57,7 +52,7 @@ void display_SetBrightness(uint8_t percentage);
 
 void display_Pressure(uint16_t pressure);
 void display_Temperature(int temperature);
-void display_Time(byte hours, byte minutes, byte seconds, byte format);
+void display_Time(byte hours, byte minutes, byte seconds);
 
 void display_StartingString(void);
 void display_ClockString(void);
@@ -65,6 +60,6 @@ void display_VersionString(void);
 
 //-----------------------------------------------------------------------------
 
-extern display_orientation_t display_orientation;
+extern matrix_orientation_t matrix_orientation;
 
 #endif // __DISPLAY_H__
