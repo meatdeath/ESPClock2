@@ -3,9 +3,9 @@
 // ----------------------------------------------------------------------------
 
 #ifdef ESP32
-#define SPI_DATA_PIN    21
+#define SPI_DATA_PIN    23
 #define SPI_CS_PIN      22
-#define SPI_CLK_PIN     23
+#define SPI_CLK_PIN     18
 #else // ESP8266
 #define SPI_DATA_PIN    D8
 #define SPI_CS_PIN      D7
@@ -18,7 +18,9 @@ uint8_t display_buf[DISPLAY_BUF_SIZE] = {0};
 
 MATRIX7219 mx(SPI_DATA_PIN, SPI_CS_PIN, SPI_CLK_PIN, NUMBER_OF_MATRIX);
 
-display_orientation_t display_orientation = DISPLAY_ORIENTATION_0;
+display_orientation_t display_orientation = DISPLAY_ORIENTATION_CW90;
+
+bool matrix_straight_order = false;
 
 // ----------------------------------------------------------------------------
 
@@ -165,6 +167,12 @@ uint8_t BitReverse(uint8_t x)
 
 void display_Row(uint8_t row, uint8_t data)
 {
+    if (!matrix_straight_order)
+    {
+        uint8_t pos = row%8;
+        uint8_t matrix = (NUMBER_OF_MATRIX-1) - (row/8);
+        row = matrix*8 + pos;
+    }
     display_buf[row] = data;
 }
 
@@ -176,7 +184,7 @@ void display_Commit()
     {
         for (int i = 0; i < DISPLAY_BUF_SIZE; i++)
         {
-            mx.setRow(i%8, display_buf[i], i/8);
+            mx.setRow(i%8+1, display_buf[i], i/8+1);
         }
     }
     else if (display_orientation == DISPLAY_ORIENTATION_CW180)
@@ -185,7 +193,7 @@ void display_Commit()
         {
             for (int i = 0; i < 8; i++)
             {
-                mx.setRow(7-i, BitReverse(display_buf[m*8+i]), m);
+                mx.setRow(7-i+1, BitReverse(display_buf[m*8+i]), m+1);
             }
         }
     }
@@ -202,7 +210,7 @@ void display_Commit()
                     if (display_buf[m*8+j]&mask)
                         data |= 1<<j;
                 }
-                mx.setRow(i, data, m);
+                mx.setRow(i+1, data, m+1);
             }
         }
     }
@@ -219,7 +227,7 @@ void display_Commit()
                     if (display_buf[m*8+j]&mask)
                         data |= 0x80>>j;
                 }
-                mx.setRow(i, data, m);
+                mx.setRow(i+1, data, m+1);
             }
         }
     }

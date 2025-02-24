@@ -42,6 +42,7 @@ void setup()
 
     Serial.print("Display init... ");
     display_Init();
+    display_ClockString();
     Serial.println("done");
 
     // Load values saved in LittleFS
@@ -53,10 +54,9 @@ void setup()
     language = prefs.getString("language","en");
     Serial.println("done");
 
-    display_ClockString();
-    delay(500);
+    delay(1000);
     display_VersionString();
-    delay(500);
+    delay(1000);
     display_StartingString();
 
     Serial.print("SSID:");
