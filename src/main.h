@@ -19,16 +19,15 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <Preferences.h>
+#include <SPI.h>
+#include "MATRIX7219.h"
 
 #include "web.h"
 #include "ota.h"
+#include "display.h"
 
-typedef enum display_orientation_en {
-    DISPLAY_ORIENTATION_0 = 0,
-    DISPLAY_ORIENTATION_CW90,
-    DISPLAY_ORIENTATION_CW180,
-    DISPLAY_ORIENTATION_CCW90
-} display_orientation_t;
+#define VERSION_MAJOR   2
+#define VERSION_MINOR   0
 
 // Set LED GPIO
 #ifdef ESP8266
@@ -48,7 +47,5 @@ extern String timeRead;
 
 // Stores LED state
 extern String ledState;
-
-extern display_orientation_t orientation;
 
 #endif // __MAIN_H__
