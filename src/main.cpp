@@ -13,24 +13,15 @@ bool restart = false;
 float temperature = -273.0;
 float pressure = 0;
 
+volatile bool button_pressed = false;
+
 #ifdef ESP32
 void browseService(const char * service, const char * proto);
 #endif
 
-struct Button {
-	const uint8_t PIN;
-	uint32_t numberKeyPresses;
-	bool pressed;
-};
-
-volatile Button button1 = {BUTTON_PIN, 0, false};
-
-void IRAM_ATTR buttonIsr() {
-    if (digitalRead(BUTTON_PIN) == 0) 
-    {
-        button1.numberKeyPresses++;
-        button1.pressed = true;
-    }
+void IRAM_ATTR buttonIsr() 
+{
+    button_pressed = true;
 }
 
 // ****************************************************************************
@@ -104,8 +95,8 @@ void setup()
     }
 
     
-	pinMode(button1.PIN, INPUT_PULLUP);
-	attachInterrupt(button1.PIN, buttonIsr, FALLING);
+	pinMode(BUTTON_PIN, INPUT_PULLUP);
+	attachInterrupt(BUTTON_PIN, buttonIsr, FALLING);
 
     // Load values saved in LittleFS
     Serial.print("Reading preferencies... ");
@@ -181,6 +172,24 @@ void setup()
     timeClient.begin();
 }
 
+bool isButtonPressed(void)
+{
+    if (button_pressed) 
+    {
+        button_pressed = false;
+        for( int i = 0; i < 100; i++)
+        {
+            delay(1);
+            if (digitalRead(BUTTON_PIN) != 0) 
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
 // ----------------------------------------------------------------------------
 
 void loop()
@@ -188,41 +197,23 @@ void loop()
     server.handleClient();
     ElegantOTA.loop();
 
-	if (button1.pressed) 
+	if (isButtonPressed()) 
     {
-        delay(100);
-        button1.numberKeyPresses = 0;
-        button1.pressed = false;
-        if (digitalRead(BUTTON_PIN) == 0) 
+        if (temperature != -273.0)
         {
-            if (temperature != -273.0)
-            {
-                display_Temperature((int)temperature);
-                for (int i = 0; i < 20; i++) {
-                    delay(100);
-                    if (button1.pressed) 
+            display_Temperature((int)temperature);
+            for (int i = 0; i < 2000; i++) {
+                delay(1);
+                if (isButtonPressed()) 
+                {
+                    if (pressure != 0)
                     {
-                        delay(100);
-                        button1.numberKeyPresses = 0;
-                        button1.pressed = false;
-                        if (digitalRead(BUTTON_PIN) == 0) 
-                        {
-                            if (pressure != 0)
+                        display_Pressure((int)(pressure/133.322));
+                        for (i = 0; i < 2000; i++) {
+                            delay(1);
+                            if (isButtonPressed()) 
                             {
-                                display_Pressure((int)(pressure/133.322));
-                                for (i = 0; i < 20; i++) {
-                                    delay(100);
-                                    if (button1.pressed) 
-                                    {
-                                        delay(100);
-                                        button1.numberKeyPresses = 0;
-                                        button1.pressed = false;
-                                        if (digitalRead(BUTTON_PIN) == 0) 
-                                        {
-                                            i = 20;
-                                        }
-                                    }
-                                }
+                                i = 2000;
                             }
                         }
                     }
