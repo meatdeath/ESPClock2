@@ -23,6 +23,7 @@
 #include "MATRIX7219.h"
 #include <Wire.h>
 #include "DS1307.h"
+#include <Adafruit_BMP280.h>
 
 #include "web.h"
 #include "ota.h"
@@ -36,11 +37,16 @@
 #define BLUE_LED_PIN    2
 #define I2C_SCL_PIN     1
 #define I2C_SDA_PIN     2
+#define BUTTON_PIN      0
 #else
 #define BLUE_LED_PIN    22
 #define I2C_SCL_PIN     16
 #define I2C_SDA_PIN     17
+#define BUTTON_PIN      25
 #endif
+
+#define DS1307_I2C_ADDR 0x68
+#define BMP280_I2C_ADDR 0x76
 
 
 extern Preferences prefs;

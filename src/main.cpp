@@ -1,7 +1,8 @@
 #include "main.h"
 
 Preferences prefs;
-DS1307 ds1307clock;
+DS1307 ds1307;  // I2C
+Adafruit_BMP280 bmp280; // I2C
 
 //Variables to save values from HTML form
 long timeOffset = 0;
@@ -9,10 +10,28 @@ String timeRead = "";
 // Stores LED state
 String ledState;
 bool restart = false;
+float temperature = -273.0;
+float pressure = 0;
 
 #ifdef ESP32
 void browseService(const char * service, const char * proto);
 #endif
+
+struct Button {
+	const uint8_t PIN;
+	uint32_t numberKeyPresses;
+	bool pressed;
+};
+
+volatile Button button1 = {BUTTON_PIN, 0, false};
+
+void IRAM_ATTR buttonIsr() {
+    if (digitalRead(BUTTON_PIN) == 0) 
+    {
+        button1.numberKeyPresses++;
+        button1.pressed = true;
+    }
+}
 
 // ****************************************************************************
 
@@ -49,8 +68,8 @@ void setup()
 
     Serial.print("Init DS1307... ");
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-	ds1307clock.begin();
-    
+	ds1307.begin();
+
     //Wire.begin( I2C_SDA_PIN, I2C_SCL_PIN);
     // for (byte address = 0x08; address < 0x7F; address++) {  // Scan addresses from 0x08 to 0x7F
     //     Wire.beginTransmission(address); // Start transmission to the address
@@ -61,10 +80,32 @@ void setup()
     //     delay(5); // Small delay between scans    
     //   }
 
-	ds1307clock.getTime();
+	ds1307.getTime();
     Serial.println("done");
 
-    Serial.printf("Time from DS1307: %02d:%02d:%02d\n", ds1307clock.hour, ds1307clock.minute, ds1307clock.second);
+    Serial.printf("Time from DS1307: %02d:%02d:%02d\n", ds1307.hour, ds1307.minute, ds1307.second);
+
+    Serial.print("Init BMP280... ");
+    bool bmp_initialized = bmp280.begin(BMP280_I2C_ADDR);
+    if (!bmp_initialized)
+    {
+        Serial.println(F("FAIL!\nCould not find a valid BMP280 sensor, check wiring or "
+                          "try a different address!"));
+    }
+    else
+    {
+        /* Default settings from datasheet. */
+        bmp280.setSampling(Adafruit_BMP280::MODE_FORCED,     /* Operating Mode. */
+            Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
+            Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
+            Adafruit_BMP280::FILTER_X16,      /* Filtering. */
+            Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
+        Serial.println("done");
+    }
+
+    
+	pinMode(button1.PIN, INPUT_PULLUP);
+	attachInterrupt(button1.PIN, buttonIsr, FALLING);
 
     // Load values saved in LittleFS
     Serial.print("Reading preferencies... ");
@@ -146,21 +187,73 @@ void loop()
 {
     server.handleClient();
     ElegantOTA.loop();
+
+	if (button1.pressed) 
+    {
+        delay(100);
+        button1.numberKeyPresses = 0;
+        button1.pressed = false;
+        if (digitalRead(BUTTON_PIN) == 0) 
+        {
+            if (temperature != -273.0)
+            {
+                display_Temperature((int)temperature);
+                for (int i = 0; i < 20; i++) {
+                    delay(100);
+                    if (button1.pressed) 
+                    {
+                        delay(100);
+                        button1.numberKeyPresses = 0;
+                        button1.pressed = false;
+                        if (digitalRead(BUTTON_PIN) == 0) 
+                        {
+                            if (pressure != 0)
+                            {
+                                display_Pressure((int)(pressure/133.322));
+                                for (i = 0; i < 20; i++) {
+                                    delay(100);
+                                    if (button1.pressed) 
+                                    {
+                                        delay(100);
+                                        button1.numberKeyPresses = 0;
+                                        button1.pressed = false;
+                                        if (digitalRead(BUTTON_PIN) == 0) 
+                                        {
+                                            i = 20;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     
     if (accessPoint)
     {
-        ds1307clock.getTime();
+        ds1307.getTime();
         static uint8_t seconds = 60;
-        if (seconds != ds1307clock.second)
+        if (seconds != ds1307.second)
         {
-            seconds = ds1307clock.second;
-            uint8_t hours = ds1307clock.hour;
-            uint8_t minutes = ds1307clock.minute;
+            seconds = ds1307.second;
+            uint8_t hours = ds1307.hour;
+            uint8_t minutes = ds1307.minute;
             
             char time_str[20] ="";
             snprintf(time_str, 20, "%02d:%02d:%02d", hours, minutes, seconds);
             Serial.printf("DS1307 time: %s\n", time_str);
             display_Time(hours, minutes, seconds);
+
+            if (bmp280.takeForcedMeasurement()) 
+            {
+                temperature = bmp280.readTemperature();
+                pressure = bmp280.readPressure();
+                Serial.printf("Temperature: %2.1f*C\n", temperature);
+                Serial.printf("Pressure: %.1fPa = %.2fmmHg\n", pressure, pressure/133.322);
+
+            }
         }
     }
     else
@@ -181,13 +274,22 @@ void loop()
             old_time = timeRead;
             display_Time(hours, minutes, seconds);
             
-            ds1307clock.getTime();
-            if (hours != ds1307clock.hour || minutes != ds1307clock.minute || seconds != ds1307clock.second)
+            ds1307.getTime();
+            if (hours != ds1307.hour || minutes != ds1307.minute || seconds != ds1307.second)
             {
-                Serial.printf("DS1307 time: %02d:%02d:%02d\n", ds1307clock.hour, ds1307clock.minute, ds1307clock.second);
-                ds1307clock.fillByHMS(hours, minutes, seconds+1);
-                ds1307clock.setTime();
+                Serial.printf("DS1307 time: %02d:%02d:%02d\n", ds1307.hour, ds1307.minute, ds1307.second);
+                delay(500);
+                ds1307.fillByHMS(hours, minutes, seconds+1);
+                ds1307.setTime();
                 Serial.println("Sync DS1307 with NTP time");
+            }
+            
+            if (bmp280.takeForcedMeasurement()) 
+            {
+                temperature = bmp280.readTemperature();
+                pressure = bmp280.readPressure();
+                Serial.printf("Temperature: %2.1f*C\n", temperature);
+                Serial.printf("Pressure: %.1fPa = %.2fmmHg\n", pressure, pressure/133.322);
             }
         }
     }

@@ -286,7 +286,7 @@ void display_SetBrightness(uint8_t percentage)
 void display_Pressure(uint16_t pressure) 
 {
     uint8_t size;
-    uint8_t i, offset = 0;
+    uint8_t i, offset = 1;
     
     uint8_t symbols[] = 
     {
@@ -299,14 +299,14 @@ void display_Pressure(uint16_t pressure)
     
     display_Clear();
 
-    for(int j = 0; j < 4; j++) 
+    for(int j = 0; j < sizeof(symbols); j++) 
     {
         size = pgm_read_byte(&(digits[symbols[j]].size));
         for( i = 0; i < size; i++ ) 
         {
             display_Row(offset+i, pgm_read_byte(&(digits[symbols[j]].array[i])));
         }
-        offset += size + 2;        
+        offset += size + 1;        
     }
     
     display_Commit();
@@ -372,7 +372,15 @@ void display_Temperature(int temperature)
     {
         display_Row(offset+i, pgm_read_byte(&(digits[t2].array[i])));
     }
+    
     offset += size + 2;
+    size = pgm_read_byte(&(digits[DISPLAY_SYMBOL_DEGREE].size));
+    for( i = 0; i < size; i++ ) 
+    {
+        display_Row(offset+i, pgm_read_byte(&(digits[DISPLAY_SYMBOL_DEGREE].array[i])));
+    }
+    
+    offset += size + 1;
     size = pgm_read_byte(&(digits[DISPLAY_SYMBOL_C].size));
     for( i = 0; i < size; i++ ) 
     {
