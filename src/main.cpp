@@ -1,6 +1,8 @@
 #include "main.h"
 
 Preferences prefs;
+DS1307 ds1307clock;
+
 //Variables to save values from HTML form
 long timeOffset = 0;
 String timeRead = "";
@@ -44,6 +46,25 @@ void setup()
     display_Init();
     display_ClockString();
     Serial.println("done");
+
+    Serial.print("Init DS1307... ");
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+	ds1307clock.begin();
+    
+    //Wire.begin( I2C_SDA_PIN, I2C_SCL_PIN);
+    // for (byte address = 0x08; address < 0x7F; address++) {  // Scan addresses from 0x08 to 0x7F
+    //     Wire.beginTransmission(address); // Start transmission to the address
+    //     if (Wire.endTransmission() == 0) { // Check if transmission was successful (device responded)
+    //       Serial.print("Found address: 0x"); 
+    //       Serial.println(address, HEX); // Print the found address in hexadecimal format
+    //     }
+    //     delay(5); // Small delay between scans    
+    //   }
+
+	ds1307clock.getTime();
+    Serial.println("done");
+
+    Serial.printf("Time from DS1307: %02d:%02d:%02d\n", ds1307clock.hour, ds1307clock.minute, ds1307clock.second);
 
     // Load values saved in LittleFS
     Serial.print("Reading preferencies... ");
@@ -126,7 +147,23 @@ void loop()
     server.handleClient();
     ElegantOTA.loop();
     
-    if (accessPoint == false)
+    if (accessPoint)
+    {
+        ds1307clock.getTime();
+        static uint8_t seconds = 60;
+        if (seconds != ds1307clock.second)
+        {
+            seconds = ds1307clock.second;
+            uint8_t hours = ds1307clock.hour;
+            uint8_t minutes = ds1307clock.minute;
+            
+            char time_str[20] ="";
+            snprintf(time_str, 20, "%02d:%02d:%02d", hours, minutes, seconds);
+            Serial.printf("DS1307 time: %s\n", time_str);
+            display_Time(hours, minutes, seconds);
+        }
+    }
+    else
     {
         timeClient.update();
         static String old_time = "";
@@ -140,9 +177,18 @@ void loop()
         timeRead = String(time_str);
         if (timeRead != old_time)
         {
-            Serial.println(timeRead);
+            Serial.printf("Time: %s\n", timeRead.c_str());
             old_time = timeRead;
             display_Time(hours, minutes, seconds);
+            
+            ds1307clock.getTime();
+            if (hours != ds1307clock.hour || minutes != ds1307clock.minute || seconds != ds1307clock.second)
+            {
+                Serial.printf("DS1307 time: %02d:%02d:%02d\n", ds1307clock.hour, ds1307clock.minute, ds1307clock.second);
+                ds1307clock.fillByHMS(hours, minutes, seconds+1);
+                ds1307clock.setTime();
+                Serial.println("Sync DS1307 with NTP time");
+            }
         }
     }
     //ElegantOTA.loop();

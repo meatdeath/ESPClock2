@@ -21,6 +21,8 @@
 #include <Preferences.h>
 #include <SPI.h>
 #include "MATRIX7219.h"
+#include <Wire.h>
+#include "DS1307.h"
 
 #include "web.h"
 #include "ota.h"
@@ -32,9 +34,14 @@
 // Set LED GPIO
 #ifdef ESP8266
 #define BLUE_LED_PIN    2
+#define I2C_SCL_PIN     1
+#define I2C_SDA_PIN     2
 #else
 #define BLUE_LED_PIN    22
+#define I2C_SCL_PIN     16
+#define I2C_SDA_PIN     17
 #endif
+
 
 extern Preferences prefs;
 
