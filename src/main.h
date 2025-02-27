@@ -38,11 +38,13 @@
 #define I2C_SCL_PIN     1
 #define I2C_SDA_PIN     2
 #define BUTTON_PIN      0
+#define LIGHT_SENS_PIN  A0
 #else
 #define BLUE_LED_PIN    22
 #define I2C_SCL_PIN     16
 #define I2C_SDA_PIN     17
 #define BUTTON_PIN      25
+#define LIGHT_SENS_PIN  36
 #endif
 
 #define DS1307_I2C_ADDR 0x68

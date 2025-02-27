@@ -221,6 +221,14 @@ void loop()
             }
         }
     }
+
+    // 3.3-3.2V -> 4095
+    const int lower_light = 100;
+    const int higher_light = 3000;
+    uint16_t lightValue = constrain(analogRead(LIGHT_SENS_PIN), lower_light, higher_light);
+    uint8_t measured_intensity = map(lightValue, lower_light, higher_light, 6, 0);
+
+    display_SetIntensity(measured_intensity);
     
     if (accessPoint)
     {
@@ -235,6 +243,7 @@ void loop()
             char time_str[20] ="";
             snprintf(time_str, 20, "%02d:%02d:%02d", hours, minutes, seconds);
             Serial.printf("DS1307 time: %s\n", time_str);
+            Serial.printf("Intensity = %d (%d)\n", measured_intensity, lightValue);
             display_Time(hours, minutes, seconds);
 
             if (bmp280.takeForcedMeasurement()) 
@@ -262,6 +271,7 @@ void loop()
         if (timeRead != old_time)
         {
             Serial.printf("Time: %s\n", timeRead.c_str());
+            Serial.printf("Intensity = %d (%d)\n", measured_intensity, lightValue);
             old_time = timeRead;
             display_Time(hours, minutes, seconds);
             
