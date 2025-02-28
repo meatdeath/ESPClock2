@@ -243,7 +243,7 @@ void loop()
             char time_str[20] ="";
             snprintf(time_str, 20, "%02d:%02d:%02d", hours, minutes, seconds);
             Serial.printf("DS1307 time: %s\n", time_str);
-            Serial.printf("Intensity = %d (%d)\n", measured_intensity, lightValue);
+            //Serial.printf("Intensity = %d (%d)\n", measured_intensity, lightValue);
             display_Time(hours, minutes, seconds);
 
             if (bmp280.takeForcedMeasurement()) 
@@ -271,7 +271,7 @@ void loop()
         if (timeRead != old_time)
         {
             Serial.printf("Time: %s\n", timeRead.c_str());
-            Serial.printf("Intensity = %d (%d)\n", measured_intensity, lightValue);
+            //Serial.printf("Intensity = %d (%d)\n", measured_intensity, lightValue);
             old_time = timeRead;
             display_Time(hours, minutes, seconds);
             
