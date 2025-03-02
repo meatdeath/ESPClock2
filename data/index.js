@@ -103,7 +103,7 @@ function orientationRequest(orientationObj)
     {
         if (this.readyState == 4 && this.status == 200) 
         {
-            console.log("Display Orientation: " + this.responseText);
+            console.log("Display Matrix Orientation: " + this.responseText);
             document.getElementById("orientation").value = this.responseText;   
         }
     };
