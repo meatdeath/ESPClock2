@@ -192,13 +192,24 @@ bool isButtonPressed(void)
 
 // ----------------------------------------------------------------------------
 
-void loop()
+void handleLoopFuncs()
 {
     server.handleClient();
     ElegantOTA.loop();
+}
 
+void loop()
+{
+    handleLoopFuncs();
 	if (isButtonPressed()) 
-    {
+    {   
+        if (bmp280.takeForcedMeasurement()) 
+        {
+            temperature = bmp280.readTemperature();
+            pressure = bmp280.readPressure();
+            Serial.printf("Temperature: %2.1f*C\n", temperature);
+            Serial.printf("Pressure: %.1fPa = %.2fmmHg\n", pressure, pressure/133.322);
+        }
         if (temperature != -273.0)
         {
             display_Temperature((int)temperature);
@@ -245,15 +256,6 @@ void loop()
             Serial.printf("DS1307 time: %s\n", time_str);
             //Serial.printf("Intensity = %d (%d)\n", measured_intensity, lightValue);
             display_Time(hours, minutes, seconds);
-
-            if (bmp280.takeForcedMeasurement()) 
-            {
-                temperature = bmp280.readTemperature();
-                pressure = bmp280.readPressure();
-                Serial.printf("Temperature: %2.1f*C\n", temperature);
-                Serial.printf("Pressure: %.1fPa = %.2fmmHg\n", pressure, pressure/133.322);
-
-            }
         }
     }
     else
@@ -283,14 +285,6 @@ void loop()
                 ds1307.fillByHMS(hours, minutes, seconds+1);
                 ds1307.setTime();
                 Serial.println("Sync DS1307 with NTP time");
-            }
-            
-            if (bmp280.takeForcedMeasurement()) 
-            {
-                temperature = bmp280.readTemperature();
-                pressure = bmp280.readPressure();
-                Serial.printf("Temperature: %2.1f*C\n", temperature);
-                Serial.printf("Pressure: %.1fPa = %.2fmmHg\n", pressure, pressure/133.322);
             }
         }
     }
