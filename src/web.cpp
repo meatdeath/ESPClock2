@@ -144,12 +144,21 @@ void handleRoot(void)
     //server.sendHeader("Content-type", "text/html");
     server.sendHeader("Content-type", "text/html; charset=utf-8");
     String fileContent;
-    while(file.available()){
+    while(file.available())
+    {
         fileContent = file.readStringUntil('\n');
-        int pos = fileContent.indexOf("%STATE%");
+        String fw_version_template = "%FW_VERSION%";
+        int fw_pos = fileContent.indexOf(fw_version_template);
+        if (fw_pos)
+        { 
+            String version_string = "v." + (String)VERSION_MAJOR + "." + (String)VERSION_MINOR;
+            fileContent.replace(fw_version_template, version_string);
+        }
+        String state_template = "%STATE%";
+        int pos = fileContent.indexOf(state_template);
         if(pos >= 0)
         {
-            fileContent.replace("%STATE%", ledState);
+            fileContent.replace(state_template, ledState);
             Serial.println("State parameter updated");
         }
         server.sendContent(fileContent);
@@ -280,11 +289,12 @@ void handleWiFiManager(void)
         }
 
         String fileContent;
-        while(file.available()){
+        while(file.available())
+        {
           fileContent = file.readStringUntil('\n');
           String search_template = "%SSID_LIST%";
           int pos = fileContent.indexOf(search_template);
-          if(pos >= 0)
+          if (pos >= 0)
           {
             Serial.printf("%s found at %d\n", search_template.c_str(), pos);
             String substring = fileContent.substring(0, pos);
