@@ -30,7 +30,7 @@
     <div class="content">
       <div class="card-grid">
         <div class="card"> -->
-          <p class="card-title time-offset">ВРЕМЕННАЯ РАЗНИЦА (ОТНОСИТЕЛЬНО ГРИНВИЧА)</p>
+          <p class="card-title time-offset">ВРЕМЕННАЯ РАЗНИЦА (ЧАСОВОЙ ПОЯС))</p>
           <table>
             <tr>
               <td class="first-column"><label class="hours-offset" for="hours-offset">Часы</label></td>
@@ -42,6 +42,15 @@
               <td class="first-column"><label class="minutes-offset" for="minutes-offset">Минуты</label></td>
               <td class="parameter-column">
                 <input type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15" onchange="setOffset()">
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column"><label class="time-format-text" for="time-format">Формат времени</label></td>
+              <td class="parameter-column">
+                <select name="time-format" id="time-format" onChange="timeFormatRequest()">
+                  <option value="12h">12ч</option>
+                  <option value="24h">24ч</option>
+                </select>
               </td>
             </tr>
           </table>
@@ -79,6 +88,86 @@
                 </select>
               </td>
             </tr>
+            <tr>
+              <td class="first-column">
+                <label class="min-intensivity-text" for="min-intensivity">Минимальная яркость</label>
+              </td>
+              <td class="parameter-column">
+                <div class="range-container">
+                  <div class="range-slider-container">
+                    <input  type="range" 
+                            id="min-intensivity" 
+                            name="min-intensivity" 
+                            min="0" max="%MAX_INTENCITY%"
+                            value="%MIN_INTENCITY%"
+                            onchange="onLightRangesChange()">
+                  </div>
+                  <div class="range-value-container">
+                    <output type="number" class="range-value-output output" id="min-intensivity-value">%MIN_INTENCITY%</output>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column">
+                <label class="max-intensivity-text" for="max-intensivity">Максимальная яркость</label>
+              </td>
+              <td class="parameter-column">
+                <div class="range-container">
+                  <div class="range-slider-container">
+                    <input  type="range" 
+                            id="max-intensivity" 
+                            name="max-intensivity" 
+                            min="%MIN_INTENCITY%" max="15" 
+                            value="%MAX_INTENCITY%"
+                            onchange="onLightRangesChange()">
+                  </div>
+                  <div class="range-value-container">
+                    <output type="number" class="range-value-output output" id="max-intensivity-value">%MAX_INTENCITY%</output>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column">
+                <label class="light-on-min-intensivity-text" for="light-on-min-intensivity">Освещенность при минимальной яркости</label>
+              </td>
+              <td class="parameter-column">
+                <div class="range-container">
+                  <div class="range-slider-container">
+                    <input  type="range" 
+                            id="light-on-min-intensivity" 
+                            name="light-on-min-intensivity" 
+                            min="0" max="%LIGHT_ON_MAX_INTENCITY%" step="100"
+                            value="%LIGHT_ON_MIN_INTENCITY%"
+                            onchange="onLightRangesChange()">
+                  </div>
+                  <div class="range-value-container">
+                    <output type="number" class="range-value-output output" id="light-on-min-intensivity-value">%LIGHT_ON_MIN_INTENCITY%</output>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column">
+                <label class="light-on-max-intensivity-text" for="light-on-max-intensivity">Освещенность при максимальной яркости</label>
+              </td>
+              <td class="parameter-column">
+                <div class="range-container">
+                  <div class="range-slider-container">
+                    <input  type="range" 
+                            id="light-on-max-intensivity" 
+                            name="light-on-max-intensivity" 
+                            min="%LIGHT_ON_MIN_INTENCITY%" max="4000" step="100"
+                            value="%LIGHT_ON_MAX_INTENCITY%"
+                            onchange="onLightRangesChange()">
+                  </div>
+                  <div class="range-value-container">
+                    <output type="number" class="range-value-output output" id="light-on-max-intensivity-value">%LIGHT_ON_MAX_INTENCITY%</output>
+                  </div>
+                </div>
+              </td>
+            </tr>
           </table>
         </div>
       </div>
@@ -86,6 +175,7 @@
 
     <div class="content">
       <a href="update"><button class="button-update">ОБНОВИТЬ ПРОШИВКУ</button></a>
+      <a href="restart"><button class="button-restart">РЕСТАРТ</button></a>
       <a href="reset"><button class="button-reset">СБРОС</button></a>
     </div>
 

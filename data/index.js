@@ -119,3 +119,50 @@ function orientationRequest(orientationObj)
     }
     xhttp.send();
 }
+
+function onLightRangesChange()
+{
+    var min_intencity = document.getElementById("min-intensivity").value;
+    var max_intencity = document.getElementById("max-intensivity").value;
+    var light_on_min_intencity = document.getElementById("light-on-min-intensivity").value;
+    var light_on_max_intencity = document.getElementById("light-on-max-intensivity").value;
+
+    document.getElementById("min-intensivity").max = max_intencity;
+    document.getElementById("max-intensivity").min = min_intencity;
+    document.getElementById("light-on-min-intensivity").max = light_on_max_intencity;
+    document.getElementById("light-on-max-intensivity").min = light_on_min_intencity;
+
+    document.getElementById("min-intensivity-value").value = min_intencity;
+    document.getElementById("max-intensivity-value").value = max_intencity;
+    document.getElementById("light-on-min-intensivity-value").value = light_on_min_intencity;
+    document.getElementById("light-on-max-intensivity-value").value = light_on_max_intencity;
+
+    console.log("min_intencity: " + min_intencity);
+    console.log("max_intencity: " + max_intencity);
+    console.log("light_on_min_intencity: " + light_on_min_intencity);
+    console.log("light_on_max_intencity: " + light_on_max_intencity);
+
+    var param = "?min_intencity="+min_intencity+
+                "&max_intencity="+max_intencity+
+                "&light_on_min_intencity="+light_on_min_intencity+
+                "&light_on_max_intencity="+light_on_max_intencity;
+
+    var xhttp = new XMLHttpRequest();
+
+    xhttp.onreadystatechange = function() 
+    {
+        if (this.readyState == 4 && this.status == 200) 
+        {
+            var json = this.responseText;
+            var jsonObj = JSON.parse(json);
+            console.log("jsonObj.min_intencity: " + jsonObj.min_intencity);
+            console.log("jsonObj.max_intencity: " + jsonObj.max_intencity);
+            console.log("jsonObj.light_on_min_intencity: " + jsonObj.light_on_min_intencity);
+            console.log("jsonObj.light_on_max_intencity: " + jsonObj.light_on_max_intencity);
+        }
+    };
+
+    xhttp.open("POST", "brightness"+param, true);
+    xhttp.send();
+
+}

@@ -13,6 +13,11 @@ bool restart = false;
 float temperature = -273.0;
 float pressure = 0;
 
+uint8_t lower_intencity = 1;
+uint8_t high_intencity = 6;
+uint16_t higher_light = 100;
+uint16_t lower_light = 3000;
+
 volatile bool button_pressed = false;
 
 #ifdef ESP32
@@ -105,6 +110,13 @@ void setup()
     ssid = prefs.getString("ssid","");
     pass = prefs.getString("pass","");
     language = prefs.getString("language","en");
+
+    
+    lower_intencity = prefs.getInt("lower_intencity", 1);
+    high_intencity = prefs.getInt("high_intencity", 8);
+    higher_light = prefs.getInt("higher_light", 200);
+    lower_light = prefs.getInt("lower_light", 3000);
+
     Serial.println("done");
 
     delay(1000);
@@ -130,12 +142,14 @@ void setup()
         // Route for root / web page
         server.on("/", handleRoot);
         server.on("/reset", handleReset);
+        server.on("/restart", handleRestart);
         server.on("/on", handleLedOn);
         server.on("/off", handleLedOff);
         server.on("/style.css", handleCss);
         server.on("/index.js", handleJs);
         server.on("/timeread", handleTime);
         server.on("/timeoffset", handleTimeOffset);
+        server.on("/brightness", handleBrightness);
         server.on("/orientationRequest", handleOrientationRequest);
     }
     else 
@@ -233,11 +247,9 @@ void loop()
         }
     }
 
-    // 3.3-3.2V -> 4095
-    const int lower_light = 100;
-    const int higher_light = 3000;
-    uint16_t lightValue = constrain(analogRead(LIGHT_SENS_PIN), lower_light, higher_light);
-    uint8_t measured_intensity = map(lightValue, lower_light, higher_light, 6, 0);
+    // 3.3-3.2V -> 4095(4000)
+    uint16_t lightValue = constrain(analogRead(LIGHT_SENS_PIN), higher_light, lower_light);
+    uint8_t measured_intensity = map(lightValue, higher_light, lower_light, high_intencity, lower_intencity);
 
     display_SetIntensity(measured_intensity);
     

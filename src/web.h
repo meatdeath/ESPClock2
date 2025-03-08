@@ -21,9 +21,11 @@ void getNetworks(void);
 
 void handleRoot(void);
 void handleReset(void);
+void handleRestart(void);
 void handleCss(void);
 void handleJs(void);
 void handleTimeOffset(void);
+void handleBrightness(void);
 void handleTime(void);
 void handleLedOff(void);
 void handleLedOn(void);

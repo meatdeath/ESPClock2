@@ -63,4 +63,11 @@ extern String timeRead;
 // Stores LED state
 extern String ledState;
 
+#define LIGHT_MAX       4000
+
+extern uint16_t higher_light;
+extern uint16_t lower_light;
+extern uint8_t lower_intencity;
+extern uint8_t high_intencity;
+
 #endif // __MAIN_H__

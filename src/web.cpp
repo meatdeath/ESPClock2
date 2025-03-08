@@ -72,6 +72,14 @@ void handleReset(void)
 
 // ----------------------------------------------------------------------------
 
+void handleRestart(void)
+{
+    restart = true;
+    server.send(200, "text/plain", "Done. ESP will restart now.");
+}
+
+// ----------------------------------------------------------------------------
+
 void handleRoot(void)
 {    
     Serial.print("Root uri: ");
@@ -148,19 +156,50 @@ void handleRoot(void)
     {
         fileContent = file.readStringUntil('\n');
         String fw_version_template = "%FW_VERSION%";
-        int fw_pos = fileContent.indexOf(fw_version_template);
-        if (fw_pos)
+        String state_template = "%STATE%";
+        String min_intencity_template = "%MIN_INTENCITY%";
+        String max_intencity_template = "%MAX_INTENCITY%";
+        String light_on_min_intencity_template = "%LIGHT_ON_MIN_INTENCITY%";
+        String light_on_max_intencity_template = "%LIGHT_ON_MAX_INTENCITY%";
+
+        if (fileContent.indexOf(fw_version_template) >= 0)
         { 
             String version_string = "v." + (String)VERSION_MAJOR + "." + (String)VERSION_MINOR;
             fileContent.replace(fw_version_template, version_string);
         }
-        String state_template = "%STATE%";
-        int pos = fileContent.indexOf(state_template);
-        if(pos >= 0)
+        
+        if(fileContent.indexOf(state_template) >= 0)
         {
             fileContent.replace(state_template, ledState);
             Serial.println("State parameter updated");
         }
+
+        
+// extern uint16_t higher_light;
+// extern uint16_t lower_light;
+// extern uint8_t lower_intencity;
+// extern uint8_t high_intencity;
+        if(fileContent.indexOf(min_intencity_template) >= 0)
+        {
+            fileContent.replace(min_intencity_template, String(lower_intencity));
+            Serial.println("State parameter updated");
+        }
+        if(fileContent.indexOf(max_intencity_template) >= 0)
+        {
+            fileContent.replace(max_intencity_template, String(high_intencity));
+            Serial.println("State parameter updated");
+        }
+        if(fileContent.indexOf(light_on_min_intencity_template) >= 0)
+        {
+            fileContent.replace(light_on_min_intencity_template, String(LIGHT_MAX-lower_light));
+            Serial.println("State parameter updated");
+        }
+        if(fileContent.indexOf(light_on_max_intencity_template) >= 0)
+        {
+            fileContent.replace(light_on_max_intencity_template, String(LIGHT_MAX-higher_light));
+            Serial.println("State parameter updated");
+        }
+
         server.sendContent(fileContent);
         //break;
     }
@@ -230,6 +269,73 @@ void handleTimeOffset(void)
     }
     
     server.send(200, "text/plane", String(timeOffset));
+}
+
+// ----------------------------------------------------------------------------
+
+void handleBrightness()
+{
+    HTTPMethod method = server.method();
+    String jsonString = "";
+    Serial.print("Method: ");
+    if(method == HTTP_GET)
+    {
+        Serial.println("HTTP_GET");
+    }
+    else if(method == HTTP_POST)
+    {
+        Serial.println("HTTP_POST");
+        int params = server.args();
+        Serial.print("N of params: ");
+        Serial.println(params);
+        if (params == 4)
+        {
+            for (int param = 0; param < params; param++)
+            {
+                Serial.print("Param: ");
+                String paramName = server.argName(param);
+                Serial.print(paramName);
+                Serial.print("=");
+                String paramValue = server.arg(param);
+                Serial.println(paramValue);
+
+                if (paramName == "min_intencity")
+                {
+                    lower_intencity = paramValue.toInt();
+                    Serial.print("lower_intencity: ");
+                    Serial.println(lower_intencity);
+                    prefs.putInt("lower_intencity", lower_intencity);
+                } 
+                else if (paramName == "max_intencity")
+                {
+                    high_intencity = paramValue.toInt();
+                    Serial.print("high_intencity: ");
+                    Serial.println(high_intencity);
+                    prefs.putInt("high_intencity", high_intencity);
+                } 
+                else if (paramName == "light_on_min_intencity")
+                {
+                    lower_light = LIGHT_MAX - paramValue.toInt();
+                    Serial.print("lower_light: ");
+                    Serial.println(lower_light);
+                    prefs.putInt("lower_light", lower_light);
+                } 
+                else if (paramName == "light_on_max_intencity")
+                {
+                    higher_light = LIGHT_MAX - paramValue.toInt();
+                    Serial.print("higher_light: ");
+                    Serial.println(higher_light);
+                    prefs.putInt("higher_light", higher_light);
+                } 
+            }
+            jsonString = "{  \"min_intencity\":" + (String)lower_intencity +
+                            "\"max_intencity\":" + (String)high_intencity +
+                            "\"light_on_min_intencity\":" + (String)(LIGHT_MAX-higher_light) +
+                            "\"light_on_max_intencity\":" + (String)(LIGHT_MAX-lower_light)+ "}";
+        }
+    }    
+    
+    server.send(200, "text/plane", String(jsonString));
 }
 
 // ----------------------------------------------------------------------------

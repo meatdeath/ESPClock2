@@ -82,7 +82,6 @@ html {
   input[type=text], input[type=password], select {
   /*  input[type=text], input[type=number], input[type=password], select {*/
     font-size: large;
-    width: 50%;
     padding: 12px;
     display: block;
     width: 100%;
@@ -93,13 +92,18 @@ html {
 
   input[type=number] {
     font-size: large;
-    width: 50%;
     padding: 12px;
     display: block;
     width: 100%;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
+  }
+
+  input[type=range] {
+    /*padding: 12px;*/
+    display: block;
+    width: 100%;
   }
   
   label {
@@ -154,6 +158,12 @@ html {
   .button-reset:hover {
     background-color: #c55c5c;
   } 
+  .button-restart {
+    background-color: #b92828;
+  }
+  .button-restart:hover {
+    background-color: #fc3838;
+  } 
   .button-update-offset {
     background-color: #418380;
   }
@@ -198,4 +208,34 @@ html {
 
 .parameter-column {
   padding: 8px 0;
+}
+
+.range-container {
+  display: table;
+  width: 100%;
+}
+
+.range-slider-container {
+  display:table-cell;
+  width: auto; 
+  vertical-align: middle;
+}
+
+.range-value-container {
+  display:table-cell; 
+  width: 80px; 
+  padding-left: 10px; 
+  vertical-align: middle; 
+  padding-left: 10px; 
+  vertical-align: middle; 
+  text-align: right;
+}
+
+.range-value-output {
+  padding: 8px 0;
+  background-color: lightgray;
+  border-radius: 5px;
+  width: 100%;
+  display: inline-block;
+  text-align: center;
 }

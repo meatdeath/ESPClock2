@@ -43,6 +43,15 @@
                 <input class="parameter-column" type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15" onchange="setOffset()">
               </td>
             </tr>
+            <tr>
+              <td class="first-column"><label class="time-format-text" for="time-format">Time format</label></td>
+              <td class="parameter-column">
+                <select name="time-format" id="time-format" onChange="timeFormatRequest()">
+                  <option value="12h">12h</option>
+                  <option value="24h">24h</option>
+                </select>
+              </td>
+            </tr>
           </table>
           <!-- <button class="button-update-offset" onclick="setOffset()">UPDATE OFFSET</button> -->
         </div>
@@ -78,6 +87,86 @@
                 </select>
               </td>
             </tr>
+            <tr>
+              <td class="first-column">
+                <label class="min-intensivity-text" for="min-intensivity">Lowest brightness</label>
+              </td>
+              <td class="parameter-column">
+                <div class="range-container">
+                  <div class="range-slider-container">
+                    <input  type="range" 
+                            id="min-intensivity" 
+                            name="min-intensivity" 
+                            min="0" max="%MAX_INTENCITY%"
+                            value="%MIN_INTENCITY%"
+                            onchange="onLightRangesChange()">
+                  </div>
+                  <div class="range-value-container">
+                    <output type="number" class="range-value-output output" id="min-intensivity-value">%MIN_INTENCITY%</output>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column">
+                <label class="max-intensivity-text" for="max-intensivity">Highest brightness</label>
+              </td>
+              <td class="parameter-column">
+                <div class="range-container">
+                  <div class="range-slider-container">
+                    <input  type="range" 
+                            id="max-intensivity" 
+                            name="max-intensivity" 
+                            min="%MIN_INTENCITY%" max="15" 
+                            value="%MAX_INTENCITY%"
+                            onchange="onLightRangesChange()">
+                  </div>
+                  <div class="range-value-container">
+                    <output type="number" class="range-value-output output" id="max-intensivity-value">%MAX_INTENCITY%</output>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column">
+                <label class="light-on-min-intensivity-text" for="light-on-min-intensivity">Lightness on lowest brightness</label>
+              </td>
+              <td class="parameter-column">
+                <div class="range-container">
+                  <div class="range-slider-container">
+                    <input  type="range" 
+                            id="light-on-min-intensivity" 
+                            name="light-on-min-intensivity" 
+                            min="0" max="%LIGHT_ON_MAX_INTENCITY%" step="100"
+                            value="%LIGHT_ON_MIN_INTENCITY%"
+                            onchange="onLightRangesChange()">
+                  </div>
+                  <div class="range-value-container">
+                    <output type="number" class="range-value-output output" id="light-on-min-intensivity-value">%LIGHT_ON_MIN_INTENCITY%</output>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column">
+                <label class="light-on-max-intensivity-text" for="light-on-max-intensivity">Lightness on highest brightness</label>
+              </td>
+              <td class="parameter-column">
+                <div class="range-container">
+                  <div class="range-slider-container">
+                    <input  type="range" 
+                            id="light-on-max-intensivity" 
+                            name="light-on-max-intensivity" 
+                            min="%LIGHT_ON_MIN_INTENCITY%" max="4000" step="100"
+                            value="%LIGHT_ON_MAX_INTENCITY%"
+                            onchange="onLightRangesChange()">
+                  </div>
+                  <div class="range-value-container">
+                    <output type="number" class="range-value-output output" id="light-on-max-intensivity-value">%LIGHT_ON_MAX_INTENCITY%</output>
+                  </div>
+                </div>
+              </td>
+            </tr>
           </table>
         </div>
       </div>
@@ -85,6 +174,7 @@
 
     <div class="content">
       <a href="update"><button class="button-update">FW UPDATE</button></a>
+      <a href="restart"><button class="button-restart">RESTART</button></a>
       <a href="reset"><button class="button-reset">RESET</button></a>
     </div>
 
