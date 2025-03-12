@@ -61,5 +61,8 @@ void display_VersionString(void);
 //-----------------------------------------------------------------------------
 
 extern matrix_orientation_t matrix_orientation;
+extern uint8_t time_format;
+extern String matrix_order;
+extern bool display_show_leading_zero;
 
 #endif // __DISPLAY_H__

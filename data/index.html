@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
   <head>
     <title>ESP CLOCK</title>
@@ -8,7 +9,7 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
     <script type="text/javascript" src="index.js"></script>
   </head>
-  <body onload="javascript:getOffset()">
+  <body onload="javascript:onPageLoad()">
     <div class="topnav">
       <table>
         <tr>
@@ -21,24 +22,22 @@
     <div class="content">
       <div class="card-grid">
         <div class="card">
-          <p class="card-title">CORRECTED TIME (BASED ON TIME ZONE)</p>
-          <input type="text" readonly class="time" id="time-string" value="00:00:00">
-        <!-- </div>
-      </div>
-    </div>
-    <div class="content">
-      <div class="card-grid">
-        <div class="card"> -->
-          <p class="card-title time-offset">TIME OFFSET (TIMEZONE FROM GMT)</p>
+          <p class="card-title">TIME SETUP</p>
           <table>
             <tr>
-              <td class="first-column"><label class="hours-offset" for="hours-offset">Hours</label></td>
+              <td class="first-column"><label class="hours-offset" for="hours-offset">Corrected time</label></td>
               <td class="parameter-column">
-                <input class="parameter-column" type="number" name="hours-offset" id="hours-offset" value="0" min="-12" max="12" onchange="setOffset()">
+                <input readonly type="text" readonly class="time" id="time-string" value="00:00:00">
               </td>
             </tr>
             <tr>
-              <td class="first-column"><label class="minutes-offset" for="minutes-offset">Minutes</label></td>
+              <td class="first-column"><label class="hours-offset" for="hours-offset">Hours offset</label></td>
+              <td class="parameter-column">
+                <input type="number" name="hours-offset" id="hours-offset" value="0" min="-12" max="12" onchange="setOffset()">
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column"><label class="minutes-offset" for="minutes-offset">Minutes offset</label></td>
               <td class="parameter-column">
                 <input class="parameter-column" type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15" onchange="setOffset()">
               </td>
@@ -46,18 +45,23 @@
             <tr>
               <td class="first-column"><label class="time-format-text" for="time-format">Time format</label></td>
               <td class="parameter-column">
-                <select name="time-format" id="time-format" onChange="timeFormatRequest()">
+                <select name="time-format" id="time-format" onChange="setTimeFormat('time_format',this)">
                   <option value="12h">12h</option>
                   <option value="24h">24h</option>
                 </select>
               </td>
             </tr>
+            <tr>
+              <td class="first-column"><label class="leading-zero-text" for="leading-zero">Hour leading zero</label></td>
+              <td class="parameter-column">
+                <input type="checkbox" name="leading-zero" id="leading-zero" onChange="setTimeFormat('leading_zero',this)">
+              </td>
+            </tr>
           </table>
-          <!-- <button class="button-update-offset" onclick="setOffset()">UPDATE OFFSET</button> -->
         </div>
       </div>
     </div>
-    
+<!--
     <div class="content">
       <div class="card-grid">
         <div class="card">
@@ -70,22 +74,26 @@
         </div>
       </div>
     </div>
-    
+-->
     <div class="content">
       <div class="card-grid">
         <div class="card">
-          <p class="card-title">SETUP</p>
+          <p class="card-title">DISPLAY SETUP</p>
           <table>
             <tr>
               <td class="first-column"><label class="orientation-text" for="orientation">Display Matrix Orientation</label></td>
               <td class="parameter-column">
-                <select name="orientation" id="orientation" onChange="orientationRequest(this)">
+                <select name="orientation" id="orientation" onChange="matrixRequest('orientation', this)">
                   <option value="0">0&#176;</option>
                   <option value="1">90&#176;</option>
                   <option value="2">180&#176;</option>
                   <option value="3">-90&#176;</option>
                 </select>
               </td>
+            </tr>
+            <tr>
+              <td class="first-column"><label class="matrix-order-text" for="reverse-matrix-order">Reverse matrix order</label></td>
+              <td class="parameter-column"><input type="checkbox" id="reverse-matrix-order" name="reverse-matrix-order"  onChange="matrixRequest('order', this)"></td>
             </tr>
             <tr>
               <td class="first-column">
@@ -174,8 +182,19 @@
 
     <div class="content">
       <a href="update"><button class="button-update">FW UPDATE</button></a>
-      <a href="restart"><button class="button-restart">RESTART</button></a>
+      <!--<a href="restart"><button class="button-restart">RESTART</button></a>-->
+      <a href="#modal-restart" onClick="onRestart()"><button class="button-restart">RESTART</button></a>
       <a href="reset"><button class="button-reset">RESET</button></a>
+    </div>
+
+    <!-- Modal restart dialog -->
+    <div id="modal-restart" class="modal-window">
+      <div>
+        <a href="#" title="Close" class="modal-restart-close">X</a>
+        <h1>Restarting...</h1>
+        <span>Clock is restarting now and</span>
+        <div>will be accessible in 10-20sec.</div>
+      </div>
     </div>
 
   </body>

@@ -273,6 +273,55 @@ void handleTimeOffset(void)
 
 // ----------------------------------------------------------------------------
 
+void handleTimeFormat()
+{
+    HTTPMethod method = server.method();
+    Serial.print("Method: ");
+    if(method == HTTP_GET)
+    {
+        Serial.println("HTTP_GET");
+    }
+    else if(method == HTTP_POST)
+    {
+        Serial.println("HTTP_POST");
+        int params = server.args();
+        Serial.print("N of params: ");
+        Serial.println(params);
+        for (int param = 0; param < params; param++)
+        {
+            Serial.print("Param: ");
+            String paramName = server.argName(param);
+            Serial.print(paramName);
+            Serial.print("=");
+            String paramValue = server.arg(param);
+            Serial.println(paramValue);
+            //time_format = TIME_FORMAT_12H;
+
+            if (paramName == "time_format")
+            {
+                time_format = (paramValue=="12h")?TIME_FORMAT_12H:TIME_FORMAT_24H;
+                Serial.print("New time format: " + paramValue);
+                prefs.putUInt("timeFormat", time_format);
+            }
+            else
+            if (paramName == "leading_zero")
+            {
+                display_show_leading_zero = (paramValue=="true")?true:false;
+                Serial.print("Show leading zero: " + paramValue);
+                prefs.putBool("display_show_leading_zero", display_show_leading_zero);
+            }
+        }
+    }
+    
+    String json_response = 
+        "{\"time_format\": " + String((time_format==TIME_FORMAT_12H)?"\"12h\"":"\"24h\"") + "," +
+         "\"leading_zero\":" + (display_show_leading_zero?"true":"false") +
+        "}";
+    server.send(200, "text/plane", json_response);
+}
+
+// ----------------------------------------------------------------------------
+
 void handleBrightness()
 {
     HTTPMethod method = server.method();
@@ -601,7 +650,7 @@ void getNetworks(void)
     }
 }
 
-void handleOrientationRequest(void)
+void handleMatrix(void)
 {
     HTTPMethod method = server.method();
     Serial.print("Method: ");
@@ -615,13 +664,13 @@ void handleOrientationRequest(void)
         int params = server.args();
         Serial.print("N of params: ");
         Serial.println(params);
-        if (params == 1)
+        for (int param = 0; param < params; param++)
         {
             Serial.print("Param: ");
-            String paramName = server.argName(0);
+            String paramName = server.argName(param);
             Serial.print(paramName);
             Serial.print("=");
-            String paramValue = server.arg(0);
+            String paramValue = server.arg(param);
             Serial.println(paramValue);
 
             if (paramName == "orientation") {
@@ -634,9 +683,19 @@ void handleOrientationRequest(void)
                 Serial.println(matrix_orientation);
                 prefs.putInt("orientation", matrix_orientation);
             }
+            else
+            if (paramName == "order") {
+                if (paramValue == "straight" || paramValue == "reverse")
+                    matrix_order = paramValue;
+                else
+                    matrix_order = "straight";
+                Serial.println("New matrix order: " + matrix_order);
+                prefs.putString("matrix_order", matrix_order);
+            }
         }
     }
   
-    server.send(200, "text/plane", String(matrix_orientation));
+    String httpParam = "{\"orientation\": " + String(matrix_orientation) + ", \"order\": \"" + matrix_order + "\"}";
+    server.send(200, "text/plane", httpParam);
 }
 

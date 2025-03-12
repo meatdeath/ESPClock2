@@ -99,23 +99,30 @@ void setup()
         Serial.println("done");
     }
 
-    
 	pinMode(BUTTON_PIN, INPUT_PULLUP);
 	attachInterrupt(BUTTON_PIN, buttonIsr, FALLING);
 
-    // Load values saved in LittleFS
-    Serial.print("Reading preferencies... ");
+    // Init preferencies
     prefs.begin("setup");
-    timeOffset = prefs.getInt("timeOffset", 0);
-    ssid = prefs.getString("ssid","");
-    pass = prefs.getString("pass","");
-    language = prefs.getString("language","en");
 
+    // Load values saved in preferencies
+    Serial.print("Reading preferencies... ");
+
+    ssid            = prefs.getString("ssid", "");
+    pass            = prefs.getString("pass", "");
+    language        = prefs.getString("language", "en");
     
     lower_intencity = prefs.getInt("lower_intencity", 1);
-    high_intencity = prefs.getInt("high_intencity", 8);
-    higher_light = prefs.getInt("higher_light", 200);
-    lower_light = prefs.getInt("lower_light", 3000);
+    high_intencity  = prefs.getInt("high_intencity", 8);
+    higher_light    = prefs.getInt("higher_light", 200);
+    lower_light     = prefs.getInt("lower_light", 3000);
+
+    matrix_order        = prefs.getString("matrix_order", "reverse");
+    matrix_orientation  = (matrix_orientation_t)prefs.getInt("orientation", MATRIX_ORIENTATION_0);
+
+    timeOffset                  = prefs.getInt("timeOffset", 0);
+    time_format                 = prefs.getUInt("timeFormat", TIME_FORMAT_24H);
+    display_show_leading_zero   = prefs.getBool("display_show_leading_zero", true);
 
     Serial.println("done");
 
@@ -149,8 +156,9 @@ void setup()
         server.on("/index.js", handleJs);
         server.on("/timeread", handleTime);
         server.on("/timeoffset", handleTimeOffset);
+        server.on("/timeformat", handleTimeFormat);
         server.on("/brightness", handleBrightness);
-        server.on("/orientationRequest", handleOrientationRequest);
+        server.on("/matrix", handleMatrix);
     }
     else 
     {

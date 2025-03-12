@@ -1,10 +1,18 @@
-getTime();
-orientationRequest(null);
 
-setInterval(function() 
+function onPageLoad()
 {
-    getTime();
-}, 1000); 
+    getOffset();
+    getTimeFormat();getTime();
+    matrixRequest(null, null);
+    setInterval(function() { getTime(); }, 1000); 
+}
+
+function onRestart()
+{
+    var xhttp = new XMLHttpRequest();
+    xhttp.open("GET", "restart", true);
+    xhttp.send();
+}
 
 function onLangClick(language)
 {
@@ -66,6 +74,48 @@ function setOffset()
     xhttp.send();
 }
 
+function setTimeFormat(paramName, obj)
+{
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() 
+    {
+        if (this.readyState == 4 && this.status == 200) 
+        {
+            var json = this.responseText;
+            var jsonObj = JSON.parse(json);
+            if (jsonObj.time_format != undefined)
+            {
+                console.log("time_format respoonse: " + jsonObj.time_format);
+                document.getElementById("time-format").value = jsonObj.time_format;
+            }
+            if (jsonObj.leading_zero != undefined)
+            {
+                console.log("leading_zero respoonse: " + jsonObj.leading_zero);
+                document.getElementById("leading-zero").checked = jsonObj.leading_zero;
+            }
+        }
+    };
+
+    var param = "?" + paramName + "=";
+    if (paramName == "time_format")
+    {
+        var timeFormat = obj.value;
+        console.log("Setting timeFormat: " + timeFormat);
+        param += timeFormat;
+        xhttp.open("POST", "timeformat" + param, true);
+        xhttp.send();
+    }
+    else
+    if (paramName == "leading_zero")
+    {
+        var leadingZero = obj.checked;
+        console.log("Setting leadingZero: " + leadingZero);
+        param += String(leadingZero);
+        xhttp.open("POST", "timeformat" + param, true);
+        xhttp.send();
+    }
+}
+
 function getOffset() 
 {
     var xhttp = new XMLHttpRequest();
@@ -87,36 +137,65 @@ function getOffset()
     xhttp.open("GET", "timeoffset", true);
     xhttp.send();
 }
-
-function orientationRequest(orientationObj)
+function getTimeFormat() 
 {
-    var value = -1;
-    if (orientationObj != null)
-    {
-        value = orientationObj.value;
-    }
-    console.log(value);
-    
     var xhttp = new XMLHttpRequest();
 
     xhttp.onreadystatechange = function() 
     {
         if (this.readyState == 4 && this.status == 200) 
         {
-            console.log("Display Matrix Orientation: " + this.responseText);
-            document.getElementById("orientation").value = this.responseText;   
+            var json = this.responseText;
+            var jsonObj = JSON.parse(json);
+            var timeFormat = jsonObj.time_format;
+            var leadingZero = jsonObj.leading_zero;
+            if (timeFormat != undefined)
+            {
+                console.log("Time format: " + timeFormat);
+                document.getElementById("time-format").value = timeFormat;
+            }
+            if (leadingZero != undefined)
+            {
+                console.log("Leading zero: " + leadingZero);
+                document.getElementById("leading-zero").value = leadingZero;
+            }
         }
     };
 
-    if (value == -1)
+    xhttp.open("GET", "timeformat", true);
+    xhttp.send();
+}
+
+function matrixRequest(paramName, obj)
+{;
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() 
     {
-        xhttp.open("GET", "orientationRequest", true);
-    }
-    else
+        if (this.readyState == 4 && this.status == 200) 
+        {
+            var json = this.responseText;
+            var matrixObj = JSON.parse(json);
+            console.log("Display Matrix Orientation: " + matrixObj.orientation);
+            document.getElementById("orientation").value = matrixObj.orientation;  
+            console.log("Display Matrix Order: " + matrixObj.order);
+            document.getElementById("reverse-matrix-order").checked = (matrixObj.order=="reverse");   
+        }
+    };
+
+    var paramValue;
+    switch (paramName)
     {
-        var param = "?orientation="+value;
-        xhttp.open("POST", "orientationRequest"+param, true);
+        case "orientation": paramValue = obj.value; break;
+        case "order": paramValue = obj.checked?"reverse":"straight"; break;
+        default:
+            xhttp.open("GET", "matrix", true);
+            xhttp.send();
+            return;
     }
+
+    console.log("Set " + paramName + ": " + paramValue);
+
+    xhttp.open("POST", "matrix?"+paramName+"="+paramValue, true);
     xhttp.send();
 }
 

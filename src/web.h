@@ -25,11 +25,12 @@ void handleRestart(void);
 void handleCss(void);
 void handleJs(void);
 void handleTimeOffset(void);
+void handleTimeFormat(void);
 void handleBrightness(void);
 void handleTime(void);
 void handleLedOff(void);
 void handleLedOn(void);
-void handleOrientationRequest(void);
+void handleMatrix(void);
 void handleWifiManagerJs(void);
 
 extern String ssid;

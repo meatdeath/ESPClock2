@@ -105,6 +105,18 @@ html {
     display: block;
     width: 100%;
   }
+
+  input[type=checkbox] {
+    display: block;
+    /* Double-sized Checkboxes */
+    -ms-transform: scale(2); /* IE */
+    -moz-transform: scale(2); /* FF */
+    -webkit-transform: scale(2); /* Safari and Chrome */
+    -o-transform: scale(2); /* Opera */
+    transform: scale(2);
+    padding: 10px;
+    margin: 10px;
+  }
   
   label {
     font-size: 1.2rem; 
@@ -239,3 +251,71 @@ html {
   display: inline-block;
   text-align: center;
 }
+
+.modal-window {
+  position: fixed;
+  background-color: rgba(128, 128, 128, 0.75);
+  box-shadow: grey 10px 10px 15px;
+  border: 1px gray solid;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 999;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s;
+  &:target {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  & > div {
+    width: 400px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 2em;
+    background: white;
+  }
+  header {
+    font-weight: bold;
+  }
+  h1 {
+    font-size: 150%;
+    margin: 0 0 15px;
+    color: black;
+  }
+}
+
+.modal-restart-close {
+  color: #808080;
+  line-height: 30px;
+  font-size: 80%;
+  position: absolute;
+  right: 0;
+  text-align: center;
+  top: 0;
+  width: 30px;
+  text-decoration: none;
+  &:hover {
+    color: black;
+  }
+  font-weight: bold;
+  border-radius: 0 1rem;
+  border: 1px solid gray;
+  border-width: 0 0 1px 1px;
+}
+
+.modal-window {
+  & > div {
+    border-radius: 1rem;
+  }
+}
+
+.modal-window div:not(:last-of-type) {
+  margin-bottom: 15px;
+}
+
