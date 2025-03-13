@@ -157,7 +157,7 @@ function getTimeFormat()
             if (leadingZero != undefined)
             {
                 console.log("Leading zero: " + leadingZero);
-                document.getElementById("leading-zero").value = leadingZero;
+                document.getElementById("leading-zero").checked = leadingZero;
             }
         }
     };

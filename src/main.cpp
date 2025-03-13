@@ -122,7 +122,7 @@ void setup()
 
     timeOffset                  = prefs.getInt("timeOffset", 0);
     time_format                 = prefs.getUInt("timeFormat", TIME_FORMAT_24H);
-    display_show_leading_zero   = prefs.getBool("display_show_leading_zero", true);
+    display_show_leading_zero   = prefs.getBool("leading_zero", true);
 
     Serial.println("done");
 
@@ -146,19 +146,7 @@ void setup()
         else
             Serial.printf("mDNS responder started: %s.local\n", mdns_name);
 
-        // Route for root / web page
-        server.on("/", handleRoot);
-        server.on("/reset", handleReset);
-        server.on("/restart", handleRestart);
-        server.on("/on", handleLedOn);
-        server.on("/off", handleLedOff);
-        server.on("/style.css", handleCss);
-        server.on("/index.js", handleJs);
-        server.on("/timeread", handleTime);
-        server.on("/timeoffset", handleTimeOffset);
-        server.on("/timeformat", handleTimeFormat);
-        server.on("/brightness", handleBrightness);
-        server.on("/matrix", handleMatrix);
+        initConnectedServerEndpoints();
     }
     else 
     {
@@ -175,11 +163,8 @@ void setup()
         IPAddress IP = WiFi.softAPIP();
         Serial.print("AP IP address: ");
         Serial.println(IP); 
-
-        // Web Server Root URL
-        server.on("/", handleWiFiManager);
-        server.on("/style.css", handleCss);
-        server.on("/wifimanager.js", handleWifiManagerJs);
+        
+        initDisconnectedServerEndpoints();
     }
 
     ElegantOTA.begin(&server);    // Start ElegantOTA

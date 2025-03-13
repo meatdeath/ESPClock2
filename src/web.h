@@ -17,21 +17,8 @@ networkInfo_t;
 bool initWiFi();
 void handleWiFiManager(void);
 void getNetworks(void);
-
-
-void handleRoot(void);
-void handleReset(void);
-void handleRestart(void);
-void handleCss(void);
-void handleJs(void);
-void handleTimeOffset(void);
-void handleTimeFormat(void);
-void handleBrightness(void);
-void handleTime(void);
-void handleLedOff(void);
-void handleLedOn(void);
-void handleMatrix(void);
-void handleWifiManagerJs(void);
+void initConnectedServerEndpoints(void);
+void initDisconnectedServerEndpoints(void);
 
 extern String ssid;
 extern String pass;

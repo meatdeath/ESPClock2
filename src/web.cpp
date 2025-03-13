@@ -26,6 +26,20 @@ WebServer server(80);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
+void handleRoot(void);
+void handleReset(void);
+void handleRestart(void);
+void handleCss(void);
+void handleJs(void);
+void handleTimeOffset(void);
+void handleTimeFormat(void);
+void handleBrightness(void);
+void handleTime(void);
+void handleLedOff(void);
+void handleLedOn(void);
+void handleMatrix(void);
+void handleWifiManagerJs(void);
+
 // ****************************************************************************
 
 // Initialize WiFi
@@ -56,6 +70,35 @@ bool initWiFi()
     Serial.print("Connected. Local IP: ");
     Serial.println(WiFi.localIP());
     return true;
+}
+
+// ----------------------------------------------------------------------------
+
+void initConnectedServerEndpoints(void)
+{
+    // Route for root / web page
+    server.on("/", handleRoot);
+    server.on("/reset", handleReset);
+    server.on("/restart", handleRestart);
+    server.on("/on", handleLedOn);
+    server.on("/off", handleLedOff);
+    server.on("/style.css", handleCss);
+    server.on("/index.js", handleJs);
+    server.on("/timeread", handleTime);
+    server.on("/timeoffset", handleTimeOffset);
+    server.on("/timeformat", handleTimeFormat);
+    server.on("/brightness", handleBrightness);
+    server.on("/matrix", handleMatrix);
+}
+
+// ----------------------------------------------------------------------------
+
+void initDisconnectedServerEndpoints(void)
+{
+    // Web Server Root URL
+    server.on("/", handleWiFiManager);
+    server.on("/style.css", handleCss);
+    server.on("/wifimanager.js", handleWifiManagerJs);
 }
 
 // ----------------------------------------------------------------------------
@@ -308,7 +351,7 @@ void handleTimeFormat()
             {
                 display_show_leading_zero = (paramValue=="true")?true:false;
                 Serial.print("Show leading zero: " + paramValue);
-                prefs.putBool("display_show_leading_zero", display_show_leading_zero);
+                prefs.putBool("leading_zero", display_show_leading_zero);
             }
         }
     }
