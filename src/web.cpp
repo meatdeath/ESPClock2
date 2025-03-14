@@ -39,6 +39,7 @@ void handleLedOff(void);
 void handleLedOn(void);
 void handleMatrix(void);
 void handleWifiManagerJs(void);
+void handleDefault(void);
 
 // ****************************************************************************
 
@@ -80,6 +81,7 @@ void initConnectedServerEndpoints(void)
     server.on("/", handleRoot);
     server.on("/reset", handleReset);
     server.on("/restart", handleRestart);
+    server.on("/default", handleDefault);
     server.on("/on", handleLedOn);
     server.on("/off", handleLedOff);
     server.on("/style.css", handleCss);
@@ -260,6 +262,32 @@ void handleLedOn(void)
     handleRoot();
 }
 
+void handleDefault(void)
+{
+    Serial.println("Reset setup to default");
+    lower_intencity             = 1; 
+    high_intencity              = 8; 
+    higher_light                = 200; 
+    lower_light                 = 3000; 
+    matrix_order                = "reverse"; 
+    matrix_orientation          = MATRIX_ORIENTATION_0; 
+    timeOffset                  = 0; 
+    time_format                 = TIME_FORMAT_24H; 
+    display_show_leading_zero   = true; 
+    show_ntp_time               = true;
+    prefs.putInt("lower_intencity", 1);
+    prefs.putInt("high_intencity", 8);
+    prefs.putInt("higher_light", 200);
+    prefs.putInt("lower_light", 3000);
+    prefs.putString("matrix_order", "reverse");
+    prefs.putInt("orientation", MATRIX_ORIENTATION_0);
+    prefs.putInt("timeOffset", 0);
+    prefs.putUInt("timeFormat", TIME_FORMAT_24H);
+    prefs.putBool("leading_zero", true);
+    prefs.putBool("show_ntp_time", true);
+    handleRoot();
+}
+
 // ----------------------------------------------------------------------------
 
 void handleLedOff(void)
@@ -353,12 +381,22 @@ void handleTimeFormat()
                 Serial.print("Show leading zero: " + paramValue);
                 prefs.putBool("leading_zero", display_show_leading_zero);
             }
+            else
+            if (paramName == "show_ntp_time")
+            {
+                show_ntp_time = (paramValue=="true")?true:false;
+                Serial.print("Show NTP time: " + show_ntp_time);
+                prefs.putBool("show_ntp_time", show_ntp_time);
+            }
         }
     }
     
     String json_response = 
-        "{\"time_format\": " + String((time_format==TIME_FORMAT_12H)?"\"12h\"":"\"24h\"") + "," +
+        "{\"time_format\": " + String((time_format==TIME_FORMAT_12H)?"\"12h\"":"\"24h\"") + 
+        "," +
          "\"leading_zero\":" + (display_show_leading_zero?"true":"false") +
+         "," +
+         "\"show_ntp_time\":" + (show_ntp_time?"true":"false") +
         "}";
     server.send(200, "text/plane", json_response);
 }

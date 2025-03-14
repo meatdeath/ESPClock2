@@ -24,6 +24,8 @@
 #include <Wire.h>
 #include "DS1307.h"
 #include <Adafruit_BMP280.h>
+#define _TASK_SLEEP_ON_IDLE_RUN
+#include <TaskSchedulerDeclarations.h>
 
 #include "web.h"
 #include "ota.h"
@@ -69,5 +71,6 @@ extern uint16_t higher_light;
 extern uint16_t lower_light;
 extern uint8_t lower_intencity;
 extern uint8_t high_intencity;
+extern bool show_ntp_time;
 
 #endif // __MAIN_H__

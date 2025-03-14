@@ -57,6 +57,12 @@
                 <input type="checkbox" name="leading-zero" id="leading-zero" onChange="setTimeFormat('leading_zero',this)">
               </td>
             </tr>
+            <tr>
+              <td class="first-column"><label class="show-ntp-time-text" for="show-ntp-time">NTP server time</label></td>
+              <td class="parameter-column">
+                <input type="checkbox"  name="show-ntp-time" id="show-ntp-time" onChange="setTimeFormat('show_ntp_time',this)">
+              </td>
+            </tr>
           </table>
         </div>
       </div>
@@ -181,6 +187,7 @@
     </div>
 
     <div class="content">
+      <a href="default"><button class="button-default">DEFAULT</button></a>
       <a href="update"><button class="button-update">FW UPDATE</button></a>
       <!--<a href="restart"><button class="button-restart">RESTART</button></a>-->
       <a href="#modal-restart" onClick="onRestart()"><button class="button-restart">RESTART</button></a>

@@ -49,7 +49,7 @@ function setOffset()
 {
     var hours = document.getElementById("hours-offset").value;
     var minutes = document.getElementById("minutes-offset").value;
-    var seconds = hours*3600 + ((hours>0)?minutes:(-minutes)) *60;
+    var seconds = hours*3600 + ((hours>=0)?minutes:(-minutes)) *60;
     console.log("Offset: " + hours + "h " + minutes + "min => " + seconds + "s");
 
     var param = "?seconds="+seconds;
@@ -61,8 +61,8 @@ function setOffset()
         if (this.readyState == 4 && this.status == 200) 
         {
             var seconds = this.responseText;
-            var hours = seconds / 3600;
-            var minutes = (seconds%3600) / 60;
+            var hours = (seconds / 3600).toFixed(0);
+            var minutes = ((seconds%3600) / 60).toFixed(0);
             if (minutes < 0) minutes = -minutes;    
             console.log("Offset from device: " + hours + "h " + minutes + "min => " + seconds + "s");
             document.getElementById("hours-offset").value = hours;
@@ -85,13 +85,18 @@ function setTimeFormat(paramName, obj)
             var jsonObj = JSON.parse(json);
             if (jsonObj.time_format != undefined)
             {
-                console.log("time_format respoonse: " + jsonObj.time_format);
+                console.log("time_format response: " + jsonObj.time_format);
                 document.getElementById("time-format").value = jsonObj.time_format;
             }
             if (jsonObj.leading_zero != undefined)
             {
-                console.log("leading_zero respoonse: " + jsonObj.leading_zero);
+                console.log("leading_zero response: " + jsonObj.leading_zero);
                 document.getElementById("leading-zero").checked = jsonObj.leading_zero;
+            }
+            if (jsonObj.show_ntp_time != undefined)
+            {
+                console.log("show_ntp_time response: " + jsonObj.show_ntp_time);
+                document.getElementById("show-ntp-time").checked = jsonObj.show_ntp_time;
             }
         }
     };
@@ -111,6 +116,15 @@ function setTimeFormat(paramName, obj)
         var leadingZero = obj.checked;
         console.log("Setting leadingZero: " + leadingZero);
         param += String(leadingZero);
+        xhttp.open("POST", "timeformat" + param, true);
+        xhttp.send();
+    }
+    else
+    if (paramName == "show_ntp_time")
+    {
+        var showNtpTime = obj.checked;
+        console.log("Setting showNtpTime: " + showNtpTime);
+        param += String(showNtpTime);
         xhttp.open("POST", "timeformat" + param, true);
         xhttp.send();
     }
@@ -149,6 +163,7 @@ function getTimeFormat()
             var jsonObj = JSON.parse(json);
             var timeFormat = jsonObj.time_format;
             var leadingZero = jsonObj.leading_zero;
+            var showNtpTime = jsonObj.show_ntp_time;
             if (timeFormat != undefined)
             {
                 console.log("Time format: " + timeFormat);
@@ -158,6 +173,11 @@ function getTimeFormat()
             {
                 console.log("Leading zero: " + leadingZero);
                 document.getElementById("leading-zero").checked = leadingZero;
+            }
+            if (showNtpTime != undefined)
+            {
+                console.log("Show NTP time: " + showNtpTime);
+                document.getElementById("show-ntp-time").checked = showNtpTime;
             }
         }
     };

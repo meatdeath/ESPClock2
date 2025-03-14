@@ -246,6 +246,27 @@ void display_SetBrightness(uint8_t percentage)
 
 // ----------------------------------------------------------------------------
 
+void display_Invalid(void)
+{
+    uint8_t offset = 5;
+    display_Clear();
+
+    for (int j = 0; j < 3; j++)
+    {
+        int8_t i;
+        uint8_t size = pgm_read_byte(&(digits[DISPLAY_SYMBOL_DASH].size));
+        for (i = 0; i < size; i++)
+        {
+            display_Row(offset + i, pgm_read_byte(&(digits[DISPLAY_SYMBOL_DASH].array[i])));
+        }
+        offset += size + 1;
+    }
+    
+    display_Commit();
+}
+
+// ----------------------------------------------------------------------------
+
 void display_Pressure(uint16_t pressure)
 {
     uint8_t size;
@@ -354,7 +375,7 @@ void display_Temperature(int temperature)
 
 // ----------------------------------------------------------------------------
 
-void display_Time(byte hours, byte minutes, byte seconds)
+void display_Time(byte hours, byte minutes, byte seconds, bool show_colon)
 {
     byte i;
     if (time_format == TIME_FORMAT_12H)
@@ -371,6 +392,7 @@ void display_Time(byte hours, byte minutes, byte seconds)
     byte m2 = minutes % 10;
     display_Clear();
 
+    // hours high
     if (h1 == 0 && !display_show_leading_zero)
     {
         for (i = 0; i < pgm_read_byte(&(digits[h1].size)); i++)
@@ -393,23 +415,30 @@ void display_Time(byte hours, byte minutes, byte seconds)
         display_Row(7 + i, pgm_read_byte(&(digits[h2].array[i])));
     }
     // display_Row(7+i,0); // space
+
     //  colon
     for (i = 0; i < digits[DISPLAY_SYMBOL_COLON].size; i++)
     {
-        display_Row(15 + i, (seconds & 1) ? pgm_read_byte(&(digits[DISPLAY_SYMBOL_COLON].array[i])) : 0);
+        if (show_colon)
+            display_Row(15 + i, pgm_read_byte(&(digits[DISPLAY_SYMBOL_COLON].array[i])));
+        else
+            display_Row(15 + i, 0);
     }
     // display_Row(15+i,0); // space
+
     //  minutes high
     for (i = 0; i < pgm_read_byte(&(digits[m1].size)); i++)
     {
         display_Row(19 + i, pgm_read_byte(&(digits[m1].array[i])));
     }
     // display_Row(19+i,0); // space
+
     //  minutes low
     for (i = 0; i < pgm_read_byte(&(digits[m2].size)); i++)
     {
         display_Row(26 + i, pgm_read_byte(&(digits[m2].array[i])));
     }
+
     display_Commit();
 }
 

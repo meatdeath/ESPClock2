@@ -164,6 +164,12 @@ html {
   .button-update:hover {
     background-color: #60c55c;
   } 
+  .button-default {
+    background-color: #454183;
+  }
+  .button-default:hover {
+    background-color: #5c63c5;
+  } 
   .button-reset {
     background-color: #834141;
   }
@@ -176,12 +182,7 @@ html {
   .button-restart:hover {
     background-color: #fc3838;
   } 
-  .button-update-offset {
-    background-color: #418380;
-  }
-  .button-update-offset:hover {
-    background-color: #5cc5c5;
-  } 
+
 
   button:active {
     transition-duration: 50ms;

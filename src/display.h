@@ -52,7 +52,8 @@ void display_SetBrightness(uint8_t percentage);
 
 void display_Pressure(uint16_t pressure);
 void display_Temperature(int temperature);
-void display_Time(byte hours, byte minutes, byte seconds);
+void display_Time(byte hours, byte minutes, byte seconds, bool show_colon);
+void display_Invalid(void);
 
 void display_StartingString(void);
 void display_ClockString(void);
