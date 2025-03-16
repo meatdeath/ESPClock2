@@ -2,6 +2,7 @@
 #include <TaskScheduler.h>
 
 #define DS1307_SQW_PIN      13
+
 #define BUZER_PIN           14
 #define BUZER_ON()          digitalWrite(BUZER_PIN, LOW)
 #define BUZER_OFF()         digitalWrite(BUZER_PIN, HIGH)
@@ -35,6 +36,7 @@ uint16_t lower_light = 3000;
 volatile bool button_pressed = false;
 volatile bool redraw_screen = true;
 volatile bool colon_visible = true;
+volatile bool ds1307_sqw_failure = false;
 
 #ifdef ESP32
 void browseService(const char * service, const char * proto);
@@ -42,6 +44,8 @@ void browseService(const char * service, const char * proto);
 
 void bmp280Callback();
 Task bmp280Task(5000, TASK_FOREVER, &bmp280Callback, &runner, false);
+void ds1307SqwFailCallback();
+Task ds1307FailCkeck(2000, 1, ds1307SqwFailCallback, &runner, false);
 
 void IRAM_ATTR buttonIsr() 
 {
@@ -52,6 +56,9 @@ void IRAM_ATTR ds1307SqwIsr()
 {
     redraw_screen = true;
     colon_visible = !colon_visible; // digitalRead(DS1307_SQW_PIN)?true:false;
+    ds1307_sqw_failure = false;
+    ds1307FailCkeck.disable();
+    ds1307FailCkeck.enable();
 }
 
 // ****************************************************************************
@@ -226,6 +233,7 @@ void setup()
     
     runner.startNow();  // set point-in-time for scheduling start
     bmp280Task.enable();
+    ds1307FailCkeck.enable();
     
     timeClient.begin();
 }
@@ -266,6 +274,18 @@ void bmp280Callback()
         Serial.println("ERROR! Failed to get measurements from BMP280! Reinitialization...");
         bmp280Init();
     }
+}
+
+void ds1307SqwFailCallback()
+{
+    ds1307_sqw_failure = true;
+}
+
+void SecToTime(uint32_t time_sec, uint8_t &hour, uint8_t &minute, uint8_t &second)
+{
+    hour = (time_sec/3600)%24;
+    minute = (time_sec/60)%60;
+    second = time_sec%60;
 }
 
 // ----------------------------------------------------------------------------
@@ -319,80 +339,103 @@ void loop()
     
     if (accessPoint)
     {
-        ds1307.getTime();
-        static uint8_t seconds = 60;
-        //if (seconds != ds1307.second)
         if (redraw_screen)
         {
             redraw_screen = false;
-            seconds = ds1307.second;
-            uint8_t hours = ds1307.hour;
-            uint8_t minutes = ds1307.minute;
+            ds1307.getTime();
             
+            // +24 hours required to avoid overflow on correction
+            unsigned long corrected_time = (24+ds1307.hour) * 3600 + ds1307.minute * 60 + ds1307.second + timeOffset;
+            uint8_t corrected_hour, corrected_minute, corrected_second;    
+            SecToTime(corrected_time, corrected_hour, corrected_minute, corrected_second);
+
             char time_str[20] ="";
-            snprintf(time_str, 20, "%02d:%02d:%02d", hours, minutes, seconds);
-            Serial.printf("DS1307 time: %s\n", time_str);
-            //Serial.printf("Intensity = %d (%d)\n", measured_intensity, lightValue);
-            display_Time(hours, minutes, seconds, colon_visible);
+            snprintf(time_str, 20, "%02d:%02d:%02d", corrected_hour, corrected_minute, corrected_second);
+            Serial.printf("Corrected DS1307 time: %s\n", time_str);
+
+            display_Time(corrected_hour, corrected_minute, corrected_second, colon_visible);
+        }
+        else if (ds1307_sqw_failure)
+        {
+            display_Invalid();
         }
     }
     else
     {
+        uint8_t corrected_hour, corrected_minute, corrected_second;
+        uint8_t hour, minute, second;
+        unsigned long corrected_time, epoch_time;
         bool ntp_time_valid = timeClient.update();
+
         if (ntp_time_valid && show_ntp_time)
         {
-            static String old_time = "";
-            //timeRead = timeClient.getFormattedTime();
-            unsigned long epoch_time = timeClient.getEpochTime();
-            unsigned long corrected_time = epoch_time + timeOffset;
-            uint8_t corrected_hour = (corrected_time/3600)%24;
-            uint8_t corrected_minute = (corrected_time/60)%60;
-            uint8_t corrected_second = corrected_time%60;
-            uint8_t hour = (epoch_time/3600)%24;
-            uint8_t minute = (epoch_time/60)%60;
-            uint8_t second = epoch_time%60;
+            epoch_time = timeClient.getEpochTime();
+            corrected_time = epoch_time + timeOffset;
+            
+            SecToTime(corrected_time, corrected_hour, corrected_minute, corrected_second);
+            SecToTime(epoch_time, hour, minute, second);
+
             char time_str[20] ="";
             snprintf(time_str, 20, "%02d:%02d:%02d", corrected_hour, corrected_minute, corrected_second);
             timeRead = String(time_str);
-            //if (timeRead != old_time) 
-            if (redraw_screen)
+
+            if (redraw_screen || (ds1307_sqw_failure && corrected_second == 0))
             {
                 redraw_screen = false;
-                Serial.printf("Time: %s\n", timeRead.c_str());
-                //Serial.printf("Intensity = %d (%d)\n", measured_intensity, lightValue);
-                old_time = timeRead;
+                Serial.printf("Show time: %s\n", time_str);
+
                 display_Time(corrected_hour, corrected_minute, corrected_second, colon_visible);
                 
                 ds1307.getTime();
-                if (hour != ds1307.hour || minute != ds1307.minute || second != ds1307.second)
+
+                const unsigned long seconds_in_day = 24*60*60;
+                const unsigned long diif_limit = 5;
+
+                unsigned long epoch_day_seconds = epoch_time%seconds_in_day;
+                unsigned long ds1307_day_seconds = ds1307.hour*60*60 + ds1307.minute*60 + ds1307.second;
+
+                // if seconds not around overflow
+                if ((epoch_day_seconds > diif_limit && ds1307_day_seconds < (seconds_in_day-diif_limit)) ||
+                    (ds1307_day_seconds > diif_limit && epoch_day_seconds < (seconds_in_day-diif_limit)) )
                 {
-                    Serial.printf("DS1307 time: %02d:%02d:%02d\n", ds1307.hour, ds1307.minute, ds1307.second);
-                    delay(500);
-                    ds1307.fillByHMS(hour, minute, second+1);
-                    ds1307.setTime();
-                    Serial.println("Sync DS1307 with NTP time");
+                    uint8_t second_diff = 0;
+                    if (epoch_day_seconds > ds1307_day_seconds)
+                        second_diff = epoch_day_seconds - ds1307_day_seconds;
+                    else
+                        second_diff = ds1307_day_seconds - epoch_day_seconds;
+
+                    if (second_diff > diif_limit)
+                    {
+                        Serial.printf("DS1307 time: %02d:%02d:%02d\n", ds1307.hour, ds1307.minute, ds1307.second);
+                        delay(500);
+                        ds1307.fillByHMS(hour, minute, second+1);
+                        ds1307.setTime();
+                        Serial.printf("Syncronized DS1307 with NTP time: %s\n", time_str);
+                    }
                 }
             }
         }
         else
         {
-            static uint8_t old_time = 0;
-            ds1307.getTime();
-            unsigned long corrected_time = (24+ds1307.hour) * 3600 + ds1307.minute * 60 + ds1307.second + timeOffset;
-            //if (corrected_time != old_time)
             if (redraw_screen)
             {
                 redraw_screen = false;
-                old_time = corrected_time;
-                uint8_t corrected_hour = (corrected_time/3600)%24;
-                uint8_t corrected_minute = (corrected_time/60)%60;
-                uint8_t corrected_second = corrected_time%60;
+
+                ds1307.getTime();
+
+                // +24 hours required to avoid overflow on correction
+                corrected_time = (24+ds1307.hour) * 3600 + ds1307.minute * 60 + ds1307.second + timeOffset;
+                SecToTime(corrected_time, corrected_hour, corrected_minute, corrected_second);
                 
                 char time_str[20] ="";
                 snprintf(time_str, 20, "%02d:%02d:%02d", corrected_hour, corrected_minute, corrected_second);
                 timeRead = String(time_str);
 
                 display_Time(corrected_hour, corrected_minute, corrected_second, colon_visible);
+            }
+            else if (ds1307_sqw_failure)
+            {
+                display_Invalid();
             }
         }
     }

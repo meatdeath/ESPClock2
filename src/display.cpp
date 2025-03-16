@@ -251,7 +251,7 @@ void display_Invalid(void)
     uint8_t offset = 5;
     display_Clear();
 
-    for (int j = 0; j < 3; j++)
+    for (int j = 0; j < 5; j++)
     {
         int8_t i;
         uint8_t size = pgm_read_byte(&(digits[DISPLAY_SYMBOL_DASH].size));
