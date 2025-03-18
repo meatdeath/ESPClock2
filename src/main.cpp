@@ -7,6 +7,13 @@
 #define BUZER_ON()          digitalWrite(BUZER_PIN, LOW)
 #define BUZER_OFF()         digitalWrite(BUZER_PIN, HIGH)
 #define BEEP(DELAY_MS)      do{BUZER_ON();delay(DELAY_MS);BUZER_OFF();}while(0)
+#define BEEPS(COUNT,BEEP_DELAY_MS,PAUSE_DELAY_MS) \
+    do{ \
+        for(uint8_t bcnt = 0; bcnt < COUNT; bcnt++) { \
+            if(bcnt) delay(PAUSE_DELAY_MS); \
+            BEEP(BEEP_DELAY_MS); \
+        } \
+    }while(0)
 
 Scheduler runner;
 
@@ -33,10 +40,19 @@ uint8_t high_intencity = 6;
 uint16_t higher_light = 100;
 uint16_t lower_light = 3000;
 
-volatile bool button_pressed = false;
 volatile bool redraw_screen = true;
 volatile bool colon_visible = true;
 volatile bool ds1307_sqw_failure = false;
+
+volatile bool telemetry_shown = false;
+volatile uint16_t telemetry_counter = 0;
+hw_timer_t *ms_timer = NULL;
+volatile uint16_t button_debounce_counter = 0;
+volatile bool current_button_state = false;
+volatile bool button_short_press = false;
+volatile bool button_long_press = false;
+volatile bool button_long_long_press = false;
+volatile bool button_extra_long_press = false;
 
 #ifdef ESP32
 void browseService(const char * service, const char * proto);
@@ -47,9 +63,38 @@ Task bmp280Task(5000, TASK_FOREVER, &bmp280Callback, &runner, false);
 void ds1307SqwFailCallback();
 Task ds1307FailCkeck(2000, 1, ds1307SqwFailCallback, &runner, false);
 
+#define TELEMETRY_SHOW_MS       2000
+#define TELEMETRY_SHOW_TIMEOUT  ((telemetry_counter==TELEMETRY_SHOW_MS)?true:false)
+
+void IRAM_ATTR onMsTimer()
+{
+    if (telemetry_shown && telemetry_counter<TELEMETRY_SHOW_MS) telemetry_counter++;
+    if (current_button_state && (digitalRead(BUTTON_PIN)?false:true))
+    {
+        button_debounce_counter++;
+    }
+    else
+    {
+        current_button_state = false;
+        button_debounce_counter = 0;
+        // button_short_press = false;
+        // button_long_press = false;
+        // button_extra_long_press = false;
+    }
+    if (button_debounce_counter == 100) button_short_press = true;
+    if (button_debounce_counter == 3000) button_long_press = true;
+    if (button_debounce_counter == 10000) button_long_long_press = true;
+    if (button_debounce_counter == 20000) button_extra_long_press = true;
+}
+
 void IRAM_ATTR buttonIsr() 
 {
-    button_pressed = true;
+    timerAlarmEnable(ms_timer);
+    current_button_state = true;
+    button_debounce_counter = 0;
+    // button_short_press = false;
+    // button_long_press = false;
+    // button_extra_long_press = false;
 }
 
 void IRAM_ATTR ds1307SqwIsr()
@@ -102,13 +147,40 @@ bool bmp280Init()
 
 // ----------------------------------------------------------------------------
 
+void ResetSettings()
+{
+    Serial.println("Reset setup to default");
+    lower_intencity             = 1; 
+    high_intencity              = 8; 
+    higher_light                = 200; 
+    lower_light                 = 3000; 
+    matrix_order                = "reverse"; 
+    matrix_orientation          = MATRIX_ORIENTATION_0; 
+    timeOffset                  = 0; 
+    time_format                 = TIME_FORMAT_24H; 
+    display_show_leading_zero   = true; 
+    show_ntp_time               = true;
+    prefs.putInt("lower_intencity", 1);
+    prefs.putInt("high_intencity", 8);
+    prefs.putInt("higher_light", 200);
+    prefs.putInt("lower_light", 3000);
+    prefs.putString("matrix_order", "reverse");
+    prefs.putInt("orientation", MATRIX_ORIENTATION_0);
+    prefs.putInt("timeOffset", 0);
+    prefs.putUInt("timeFormat", TIME_FORMAT_24H);
+    prefs.putBool("leading_zero", true);
+    prefs.putBool("show_ntp_time", true);
+}
+
+// ----------------------------------------------------------------------------
+
 void setup()
 {
     // Serial port for debugging purposes
     Serial.begin(115200);
 
     pinMode(BUZER_PIN, OUTPUT);
-    BEEP(200);
+    BEEP(50);
 
     initFS();
 
@@ -148,6 +220,10 @@ void setup()
 
 	pinMode(BUTTON_PIN, INPUT_PULLUP);
 	attachInterrupt(BUTTON_PIN, buttonIsr, FALLING);
+
+    ms_timer = timerBegin(0, 80, true);
+    timerAttachInterrupt(ms_timer, &onMsTimer, true);
+    timerAlarmWrite(ms_timer, 1000, true);
 
     // Init preferencies
     prefs.begin("setup");
@@ -215,11 +291,7 @@ void setup()
         
         initDisconnectedServerEndpoints();
         
-        BEEP(50);
-        delay(200);
-        BEEP(50);
-        delay(200);
-        BEEP(50);
+        BEEPS(3,50,200);
     }
 
     ElegantOTA.begin(&server);    // Start ElegantOTA
@@ -238,23 +310,23 @@ void setup()
     timeClient.begin();
 }
 
-bool isButtonPressed(void)
-{
-    if (button_pressed) 
-    {
-        button_pressed = false;
-        for( int i = 0; i < 100; i++)
-        {
-            delay(1);
-            if (digitalRead(BUTTON_PIN) != 0) 
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-    return false;
-}
+// bool isButtonPressed(void)
+// {
+//     if (button_pressed) 
+//     {
+//         button_pressed = false;
+//         for( int i = 0; i < 100; i++)
+//         {
+//             delay(1);
+//             if (digitalRead(BUTTON_PIN) != 0) 
+//             {
+//                 return false;
+//             }
+//         }
+//         return true;
+//     }
+//     return false;
+// }
 
 // ----------------------------------------------------------------------------
 
@@ -294,49 +366,33 @@ void handleLoopFuncs()
 {
     server.handleClient();
     ElegantOTA.loop();
-    runner.execute();
+    runner.execute();       
+    if(mdns_on) 
+    {
+        #ifdef ESP8266
+        MDNS.update();
+        #else
+        //browseService("http", "tcp");
+        #endif
+    }
+    if (restart)
+    {
+        delay(3000);
+        ESP.restart();
+    }
 }
 
-void loop()
+enum state_en
 {
-    handleLoopFuncs();
-	if (isButtonPressed()) 
-    {   
-        BEEP(50);
-        if (telemetry.valid)
-        {
-            display_Temperature((int)telemetry.temperature);
-            for (int i = 0; i < 2000; i++) {
-                delay(1);
-                if (isButtonPressed()) 
-                {
-                    BEEP(50);
-                    display_Pressure((int)(telemetry.pressure/133.322));
-                    for (i = 0; i < 2000; i++) {
-                        delay(1);
-                        if (isButtonPressed()) 
-                        {
-                            BEEP(50);
-                            i = 2000;
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            Serial.println("BMP280 measurements are not available");
-            display_Invalid();
-            delay(500);
-        }
-    }
+    STATE_TIME = 0,
+    STATE_TEMPERATURE,
+    STATE_PRESSURE,
+    STATE_MAX
+};
+uint8_t state = STATE_TIME;
 
-    // 3.3-3.2V -> 4095(4000)
-    uint16_t lightValue = constrain(analogRead(LIGHT_SENS_PIN), higher_light, lower_light);
-    uint8_t measured_intensity = map(lightValue, higher_light, lower_light, high_intencity, lower_intencity);
-
-    display_SetIntensity(measured_intensity);
-    
+void stateTime()
+{    
     if (accessPoint)
     {
         if (redraw_screen)
@@ -439,20 +495,114 @@ void loop()
             }
         }
     }
-    
-    if(mdns_on) 
+}
+
+void loop()
+{
+    handleLoopFuncs();
+
+    // 3.3-3.2V -> 4095(4000)
+    uint16_t lightValue = constrain(analogRead(LIGHT_SENS_PIN), higher_light, lower_light);
+    uint8_t measured_intensity = map(lightValue, higher_light, lower_light, high_intencity, lower_intencity);
+
+    display_SetIntensity(measured_intensity);
+
+    if (button_short_press) 
     {
-        #ifdef ESP8266
-        MDNS.update();
-        #else
-        //browseService("http", "tcp");
-        #endif
+        BEEP(25);
+        button_short_press = false;
+        state++;
+        if (state == STATE_MAX) state = STATE_TIME;
+        telemetry_shown = false;
+        telemetry_counter = 0;
     }
-    if (restart)
+
+    if (!current_button_state)
     {
-        delay(5000);
-        ESP.restart();
+        if (button_extra_long_press)
+        {
+            button_extra_long_press = false;
+            button_long_long_press = false;
+            button_long_press = false;
+            BEEPS(4,25,200);
+            
+            prefs.clear();
+            restart = true;
+            Serial.println("Reset WIFI settings. ESP will restart, connect to AP espclock.local and use 192.168.4.1 to manage WiFi connections");
+        }
+        else if (button_long_long_press)
+        {
+            button_long_long_press = false;
+            button_long_press = false;
+            BEEPS(3,25,200);
+
+            prefs.putString("ssid", "");
+            prefs.putString("pass", "");
+            restart = true;
+            Serial.println("Reset WIFI settings. ESP will restart, connect to AP espclock.local and use 192.168.4.1 to manage WiFi connections");
+        }
+        else if (button_long_press && !current_button_state)
+        {
+            BEEPS(2,25,200);
+            button_long_press = false;
+
+            ResetSettings();
+        }
     }
+
+    switch(state)
+    {
+        case STATE_TIME:
+            stateTime();
+            break;
+
+        case STATE_TEMPERATURE:
+            if (!telemetry_shown)
+            {
+                telemetry_shown = true;
+                if (telemetry.valid)
+                {
+                    display_Temperature((int)telemetry.temperature);
+                }
+                else
+                {
+                    Serial.println("BMP280 measurements are not available");
+                    display_Invalid();
+                    delay(500);
+                    state = STATE_TIME;
+                }
+            }
+            else
+            {
+                if (TELEMETRY_SHOW_TIMEOUT)
+                {
+                    telemetry_shown = false;
+                    telemetry_counter = 0;
+                    state = STATE_TIME;
+                }
+            }
+            break;
+
+        case STATE_PRESSURE:
+            if (!telemetry_shown)
+            {
+                telemetry_shown = true;
+                display_Pressure((int)(telemetry.pressure/133.322));
+            }
+            else
+            {
+                if (TELEMETRY_SHOW_TIMEOUT)
+                {
+                    telemetry_shown = false;
+                    telemetry_counter = 0;
+                    state = STATE_TIME;
+                }
+            }
+            break;
+            
+        case STATE_MAX:
+            state = STATE_TIME;
+    }    
 }
 
 #ifdef ESP32

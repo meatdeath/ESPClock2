@@ -218,12 +218,6 @@ void handleRoot(void)
             fileContent.replace(state_template, ledState);
             Serial.println("State parameter updated");
         }
-
-        
-// extern uint16_t higher_light;
-// extern uint16_t lower_light;
-// extern uint8_t lower_intencity;
-// extern uint8_t high_intencity;
         if(fileContent.indexOf(min_intencity_template) >= 0)
         {
             fileContent.replace(min_intencity_template, String(lower_intencity));
@@ -264,27 +258,7 @@ void handleLedOn(void)
 
 void handleDefault(void)
 {
-    Serial.println("Reset setup to default");
-    lower_intencity             = 1; 
-    high_intencity              = 8; 
-    higher_light                = 200; 
-    lower_light                 = 3000; 
-    matrix_order                = "reverse"; 
-    matrix_orientation          = MATRIX_ORIENTATION_0; 
-    timeOffset                  = 0; 
-    time_format                 = TIME_FORMAT_24H; 
-    display_show_leading_zero   = true; 
-    show_ntp_time               = true;
-    prefs.putInt("lower_intencity", 1);
-    prefs.putInt("high_intencity", 8);
-    prefs.putInt("higher_light", 200);
-    prefs.putInt("lower_light", 3000);
-    prefs.putString("matrix_order", "reverse");
-    prefs.putInt("orientation", MATRIX_ORIENTATION_0);
-    prefs.putInt("timeOffset", 0);
-    prefs.putUInt("timeFormat", TIME_FORMAT_24H);
-    prefs.putBool("leading_zero", true);
-    prefs.putBool("show_ntp_time", true);
+    ResetSettings();
     handleRoot();
 }
 

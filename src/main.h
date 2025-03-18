@@ -73,4 +73,6 @@ extern uint8_t lower_intencity;
 extern uint8_t high_intencity;
 extern bool show_ntp_time;
 
+void ResetSettings();
+
 #endif // __MAIN_H__
