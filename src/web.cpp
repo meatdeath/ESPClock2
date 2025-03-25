@@ -181,18 +181,18 @@ void handleRoot(void)
         file = LittleFS.open("/index.html", "r");
     }
 
-    if(!digitalRead(BLUE_LED_PIN)) {
-        if (language == "ru")
-            ledState = "ВКЛ";
-        else
-            ledState = "ON";
-    }
-    else {
-        if (language == "ru")
-            ledState = "ВЫКЛ";
-        else
-            ledState = "OFF";
-    }
+    // if(!digitalRead(BLUE_LED_PIN)) {
+    //     if (language == "ru")
+    //         ledState = "ВКЛ";
+    //     else
+    //         ledState = "ON";
+    // }
+    // else {
+    //     if (language == "ru")
+    //         ledState = "ВЫКЛ";
+    //     else
+    //         ledState = "OFF";
+    // }
 
     //server.sendHeader("Content-type", "text/html");
     server.sendHeader("Content-type", "text/html; charset=utf-8");
@@ -213,11 +213,11 @@ void handleRoot(void)
             fileContent.replace(fw_version_template, version_string);
         }
         
-        if(fileContent.indexOf(state_template) >= 0)
-        {
-            fileContent.replace(state_template, ledState);
-            Serial.println("State parameter updated");
-        }
+        // if(fileContent.indexOf(state_template) >= 0)
+        // {
+        //     fileContent.replace(state_template, ledState);
+        //     Serial.println("State parameter updated");
+        // }
         if(fileContent.indexOf(min_intencity_template) >= 0)
         {
             fileContent.replace(min_intencity_template, String(lower_intencity));
@@ -754,3 +754,30 @@ void handleMatrix(void)
     server.send(200, "text/plane", httpParam);
 }
 
+
+#ifdef ESP32
+void browseService(const char * service, const char * proto)
+{
+    Serial.printf("Browsing for service _%s._%s.local. ... ", service, proto);
+    int n = MDNS.queryService(service, proto);
+    if (n == 0) {
+        Serial.println("no services found");
+    } else {
+        Serial.print(n);
+        Serial.println(" service(s) found");
+        for (int i = 0; i < n; ++i) {
+            // Print details for each service found
+            Serial.print("  ");
+            Serial.print(i + 1);
+            Serial.print(": ");
+            Serial.print(MDNS.hostname(i));
+            Serial.print(" (");
+            Serial.print(MDNS.IP(i));
+            Serial.print(":");
+            Serial.print(MDNS.port(i));
+            Serial.println(")");
+        }
+    }
+    Serial.println();
+}
+#endif

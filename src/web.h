@@ -20,6 +20,10 @@ void getNetworks(void);
 void initConnectedServerEndpoints(void);
 void initDisconnectedServerEndpoints(void);
 
+#ifdef ESP32
+void browseService(const char * service, const char * proto);
+#endif
+
 extern String ssid;
 extern String pass;
 extern String language;

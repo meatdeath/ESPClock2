@@ -30,6 +30,10 @@
 #include "web.h"
 #include "ota.h"
 #include "display.h"
+#include "button.h"
+#include "buzer.h"
+#include "bmp.h"
+#include "tools.h"
 
 #define VERSION_MAJOR   2
 #define VERSION_MINOR   0
@@ -47,31 +51,30 @@
 #define I2C_SDA_PIN     17
 #define BUTTON_PIN      25
 #define LIGHT_SENS_PIN  36
+#define DS1307_SQW_PIN  13
+#define BUZER_PIN       14
 #endif
 
 #define DS1307_I2C_ADDR 0x68
 #define BMP280_I2C_ADDR 0x76
 
+#define LIGHT_MAX       4000
 
 extern Preferences prefs;
 
 //Variables to save values from HTML form
 extern long timeOffset;
-
 extern bool restart;
-
 extern String timeRead;
-
 // Stores LED state
-extern String ledState;
-
-#define LIGHT_MAX       4000
-
+// extern String ledState;
 extern uint16_t higher_light;
 extern uint16_t lower_light;
 extern uint8_t lower_intencity;
 extern uint8_t high_intencity;
 extern bool show_ntp_time;
+extern hw_timer_t *ms_timer;
+extern Scheduler runner;
 
 void ResetSettings();
 

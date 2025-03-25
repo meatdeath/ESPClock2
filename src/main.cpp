@@ -1,39 +1,27 @@
 #include "main.h"
 #include <TaskScheduler.h>
 
-#define DS1307_SQW_PIN      13
-
-#define BUZER_PIN           14
-#define BUZER_ON()          digitalWrite(BUZER_PIN, LOW)
-#define BUZER_OFF()         digitalWrite(BUZER_PIN, HIGH)
-#define BEEP(DELAY_MS)      do{BUZER_ON();delay(DELAY_MS);BUZER_OFF();}while(0)
-#define BEEPS(COUNT,BEEP_DELAY_MS,PAUSE_DELAY_MS) \
-    do{ \
-        for(uint8_t bcnt = 0; bcnt < COUNT; bcnt++) { \
-            if(bcnt) delay(PAUSE_DELAY_MS); \
-            BEEP(BEEP_DELAY_MS); \
-        } \
-    }while(0)
 
 Scheduler runner;
-
-Preferences prefs;
 DS1307 ds1307;  // I2C
-Adafruit_BMP280 bmp280; // I2C
+hw_timer_t *ms_timer = NULL;
 
 //Variables to save values from HTML form
 long timeOffset = 0;
 String timeRead = "";
 bool show_ntp_time = true;
-// Stores LED state
-String ledState;
+
+// String ledState;// Stores LED state
 bool restart = false;
 
-struct telemetry_st{
-    bool valid;
-    float temperature;
-    float pressure;
-} telemetry = {false, -273, 0};
+enum state_en
+{
+    STATE_TIME = 0,
+    STATE_TEMPERATURE,
+    STATE_PRESSURE,
+    STATE_MAX
+};
+uint8_t state = STATE_TIME;
 
 uint8_t lower_intencity = 1;
 uint8_t high_intencity = 6;
@@ -46,56 +34,26 @@ volatile bool ds1307_sqw_failure = false;
 
 volatile bool telemetry_shown = false;
 volatile uint16_t telemetry_counter = 0;
-hw_timer_t *ms_timer = NULL;
-volatile uint16_t button_debounce_counter = 0;
-volatile bool current_button_state = false;
-volatile bool button_short_press = false;
-volatile bool button_long_press = false;
-volatile bool button_long_long_press = false;
-volatile bool button_extra_long_press = false;
 
-#ifdef ESP32
-void browseService(const char * service, const char * proto);
-#endif
 
-void bmp280Callback();
-Task bmp280Task(5000, TASK_FOREVER, &bmp280Callback, &runner, false);
 void ds1307SqwFailCallback();
 Task ds1307FailCkeck(2000, 1, ds1307SqwFailCallback, &runner, false);
 
 #define TELEMETRY_SHOW_MS       2000
 #define TELEMETRY_SHOW_TIMEOUT  ((telemetry_counter==TELEMETRY_SHOW_MS)?true:false)
 
-void IRAM_ATTR onMsTimer()
+void CorrectDisplayBrightness();
+void stateTime();
+
+// ****************************************************************************
+
+void IRAM_ATTR onMsTimerIsr()
 {
     if (telemetry_shown && telemetry_counter<TELEMETRY_SHOW_MS) telemetry_counter++;
-    if (current_button_state && (digitalRead(BUTTON_PIN)?false:true))
-    {
-        button_debounce_counter++;
-    }
-    else
-    {
-        current_button_state = false;
-        button_debounce_counter = 0;
-        // button_short_press = false;
-        // button_long_press = false;
-        // button_extra_long_press = false;
-    }
-    if (button_debounce_counter == 100) button_short_press = true;
-    if (button_debounce_counter == 3000) button_long_press = true;
-    if (button_debounce_counter == 10000) button_long_long_press = true;
-    if (button_debounce_counter == 20000) button_extra_long_press = true;
+    onButtonMsTimerIsr();
 }
 
-void IRAM_ATTR buttonIsr() 
-{
-    timerAlarmEnable(ms_timer);
-    current_button_state = true;
-    button_debounce_counter = 0;
-    // button_short_press = false;
-    // button_long_press = false;
-    // button_extra_long_press = false;
-}
+//-----------------------------------------------------------------------------
 
 void IRAM_ATTR ds1307SqwIsr()
 {
@@ -106,70 +64,11 @@ void IRAM_ATTR ds1307SqwIsr()
     ds1307FailCkeck.enable();
 }
 
-// ****************************************************************************
-
-// Initialize LittleFS
-void initFS()
-{
-    if (!LittleFS.begin())
-    {
-        Serial.println("An error has occurred while mounting LittleFS");
-    }
-    else
-    {
-        Serial.println("LittleFS mounted successfully");
-    }
-}
-
 // ----------------------------------------------------------------------------
 
-bool bmp280Init() 
+void ds1307SqwFailCallback()
 {
-    telemetry.valid = false;
-    bool bmp_initialized = bmp280.begin(BMP280_I2C_ADDR);
-    if (!bmp_initialized)
-    {
-        Serial.println(F("FAIL!\nCould not find a valid BMP280 sensor, check wiring or "
-                          "try a different address!"));
-    }
-    else
-    {
-        /* Default settings from datasheet. */
-        bmp280.setSampling(Adafruit_BMP280::MODE_FORCED,     /* Operating Mode. */
-            Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
-            Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
-            Adafruit_BMP280::FILTER_X16,      /* Filtering. */
-            Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
-        Serial.println("done");
-    }
-    return bmp_initialized;
-}
-
-// ----------------------------------------------------------------------------
-
-void ResetSettings()
-{
-    Serial.println("Reset setup to default");
-    lower_intencity             = 1; 
-    high_intencity              = 8; 
-    higher_light                = 200; 
-    lower_light                 = 3000; 
-    matrix_order                = "reverse"; 
-    matrix_orientation          = MATRIX_ORIENTATION_0; 
-    timeOffset                  = 0; 
-    time_format                 = TIME_FORMAT_24H; 
-    display_show_leading_zero   = true; 
-    show_ntp_time               = true;
-    prefs.putInt("lower_intencity", 1);
-    prefs.putInt("high_intencity", 8);
-    prefs.putInt("higher_light", 200);
-    prefs.putInt("lower_light", 3000);
-    prefs.putString("matrix_order", "reverse");
-    prefs.putInt("orientation", MATRIX_ORIENTATION_0);
-    prefs.putInt("timeOffset", 0);
-    prefs.putUInt("timeFormat", TIME_FORMAT_24H);
-    prefs.putBool("leading_zero", true);
-    prefs.putBool("show_ntp_time", true);
+    ds1307_sqw_failure = true;
 }
 
 // ----------------------------------------------------------------------------
@@ -182,7 +81,9 @@ void setup()
     pinMode(BUZER_PIN, OUTPUT);
     BEEP(50);
 
-    initFS();
+    // Init file system
+    if (LittleFS.begin()) Serial.println("LittleFS mounted successfully");
+    else Serial.println("An error has occurred while mounting LittleFS");
 
     // Set GPIO 2 as an OUTPUT
     pinMode(BLUE_LED_PIN, OUTPUT);
@@ -218,151 +119,63 @@ void setup()
     Serial.print("Init BMP280... ");
     bmp280Init();
 
-	pinMode(BUTTON_PIN, INPUT_PULLUP);
-	attachInterrupt(BUTTON_PIN, buttonIsr, FALLING);
+    buttonInit();
 
     ms_timer = timerBegin(0, 80, true);
-    timerAttachInterrupt(ms_timer, &onMsTimer, true);
+    timerAttachInterrupt(ms_timer, &onMsTimerIsr, true);
     timerAlarmWrite(ms_timer, 1000, true);
 
     // Init preferencies
     prefs.begin("setup");
 
-    // Load values saved in preferencies
-    Serial.print("Reading preferencies... ");
-
-    ssid            = prefs.getString("ssid", "");
-    pass            = prefs.getString("pass", "");
-    language        = prefs.getString("language", "en");
-    
-    lower_intencity = prefs.getInt("lower_intencity", 1);
-    high_intencity  = prefs.getInt("high_intencity", 8);
-    higher_light    = prefs.getInt("higher_light", 200);
-    lower_light     = prefs.getInt("lower_light", 3000);
-
-    matrix_order        = prefs.getString("matrix_order", "reverse");
-    matrix_orientation  = (matrix_orientation_t)prefs.getInt("orientation", MATRIX_ORIENTATION_0);
-
-    timeOffset                  = prefs.getInt("timeOffset", 0);
-    time_format                 = prefs.getUInt("timeFormat", TIME_FORMAT_24H);
-    display_show_leading_zero   = prefs.getBool("leading_zero", true);
-    show_ntp_time               = prefs.getBool("show_ntp_time", true);
-
-    Serial.println("done");
+    ReadSettings();
 
     delay(1000);
     display_VersionString();
     delay(1000);
     display_StartingString();
 
-    Serial.print("SSID:");
-    Serial.println(ssid);
-    Serial.print("PASS:");
-    Serial.println(pass);
+    Serial.print("SSID: " + ssid);
+    Serial.print("PASS: " + pass);
 
+    // Connect to Wi-Fi network with SSID and password
     if(initWiFi()) 
     {  
         accessPoint = false;
         mdns_on = MDNS.begin(mdns_name);
-
-        if(!mdns_on)
-            Serial.println("Error setting up MDNS responder!");
-        else
-            Serial.printf("mDNS responder started: %s.local\n", mdns_name);
-
+        if(!mdns_on) Serial.println("Error setting up MDNS responder!");
+        else Serial.printf("mDNS responder started: %s.local\n", mdns_name);
         initConnectedServerEndpoints();
         BEEP(50);
     }
     else 
     {
         accessPoint = true;
-
-        // Create list of SSID
-        getNetworks();
-
-        // Connect to Wi-Fi network with SSID and password
+        getNetworks(); // Create list of SSID
         Serial.println("Setting AP (Access Point)");
-        // NULL sets an open Access Point
-        WiFi.softAP("ESPCLOCK-AP", NULL);
-
+        WiFi.softAP("ESPCLOCK-AP", NULL); // NULL sets an open Access Point
         IPAddress IP = WiFi.softAPIP();
-        Serial.print("AP IP address: ");
-        Serial.println(IP); 
-        
+        Serial.print("AP IP address: " + IP.toString()); 
         initDisconnectedServerEndpoints();
-        
         BEEPS(3,50,200);
     }
-
-    ElegantOTA.begin(&server);    // Start ElegantOTA
     
-    // ElegantOTA callbacks
+    // Init ElegantOTA 
+    ElegantOTA.begin(&server);
     ElegantOTA.onStart(onOTAStart);
     ElegantOTA.onProgress(onOTAProgress);
     ElegantOTA.onEnd(onOTAEnd);
     server.begin();
     Serial.println("HTTP server started");
-    
     runner.startNow();  // set point-in-time for scheduling start
     bmp280Task.enable();
     ds1307FailCkeck.enable();
-    
     timeClient.begin();
 }
 
-// bool isButtonPressed(void)
-// {
-//     if (button_pressed) 
-//     {
-//         button_pressed = false;
-//         for( int i = 0; i < 100; i++)
-//         {
-//             delay(1);
-//             if (digitalRead(BUTTON_PIN) != 0) 
-//             {
-//                 return false;
-//             }
-//         }
-//         return true;
-//     }
-//     return false;
-// }
-
 // ----------------------------------------------------------------------------
 
-void bmp280Callback()
-{
-    Serial.println("Time to get measurements from bmp280...");
-    if (bmp280.takeForcedMeasurement())
-    {
-        telemetry.temperature = bmp280.readTemperature();
-        telemetry.pressure = bmp280.readPressure();
-        Serial.printf("Temperature: %2.1f*C\n", telemetry.temperature);
-        Serial.printf("Pressure: %.1fPa = %.2fmmHg\n", telemetry.pressure, telemetry.pressure/133.322);
-        telemetry.valid = true;
-    }
-    else
-    {
-        Serial.println("ERROR! Failed to get measurements from BMP280! Reinitialization...");
-        bmp280Init();
-    }
-}
-
-void ds1307SqwFailCallback()
-{
-    ds1307_sqw_failure = true;
-}
-
-void SecToTime(uint32_t time_sec, uint8_t &hour, uint8_t &minute, uint8_t &second)
-{
-    hour = (time_sec/3600)%24;
-    minute = (time_sec/60)%60;
-    second = time_sec%60;
-}
-
-// ----------------------------------------------------------------------------
-
-void handleLoopFuncs()
+void loop()
 {
     server.handleClient();
     ElegantOTA.loop();
@@ -380,16 +193,115 @@ void handleLoopFuncs()
         delay(3000);
         ESP.restart();
     }
+
+    CorrectDisplayBrightness();
+
+    button_event_t b_event = getButtonEvent();
+
+    switch (b_event)
+    {
+        case BUTTON_EVENT_PRESSED:
+            BEEP(25);
+            if (state < STATE_MAX) state++; else state = STATE_TIME;
+            telemetry_shown = false;
+            telemetry_counter = 0;
+            break;
+        case BUTTON_EVENT_LONG_PRESS:
+            BEEPS(2,25,200);
+            ResetSettings();
+            break;
+        case BUTTON_EVENT_LONG_LONG_PRESS:
+            BEEPS(3,25,200);
+            prefs.putString("ssid", "");
+            prefs.putString("pass", "");
+            restart = true;
+            Serial.println("Reset WIFI settings. ESP will restart, connect to AP espclock.local and use 192.168.4.1 to manage WiFi connections");
+            break;
+        case BUTTON_EVENT_EXTRA_LONG_PRESS:
+            BEEPS(4,25,200); 
+            prefs.clear();
+            restart = true;
+            Serial.println("Reset WIFI settings. ESP will restart, connect to AP espclock.local and use 192.168.4.1 to manage WiFi connections");
+            break;
+    }
+
+    switch(state)
+    {
+        case STATE_TIME:
+            stateTime();
+            break;
+
+        case STATE_TEMPERATURE:
+            if (!telemetry_shown)
+            {
+                telemetry_shown = true;
+                if (telemetry.valid)
+                {
+                    display_Temperature((int)telemetry.temperature);
+                }
+                else
+                {
+                    Serial.println("BMP280 measurements are not available");
+                    display_Invalid();
+                    delay(500);
+                    state = STATE_TIME;
+                }
+            }
+            else
+            {
+                if (TELEMETRY_SHOW_TIMEOUT)
+                {
+                    telemetry_shown = false;
+                    telemetry_counter = 0;
+                    state = STATE_TIME;
+                }
+            }
+            break;
+
+        case STATE_PRESSURE:
+            if (!telemetry_shown)
+            {
+                telemetry_shown = true;
+                display_Pressure((int)(telemetry.pressure/133.322));
+            }
+            else
+            {
+                if (TELEMETRY_SHOW_TIMEOUT)
+                {
+                    telemetry_shown = false;
+                    telemetry_counter = 0;
+                    state = STATE_TIME;
+                }
+            }
+            break;
+            
+        case STATE_MAX:
+            state = STATE_TIME;
+    }    
 }
 
-enum state_en
+void CorrectDisplayBrightness()
 {
-    STATE_TIME = 0,
-    STATE_TEMPERATURE,
-    STATE_PRESSURE,
-    STATE_MAX
-};
-uint8_t state = STATE_TIME;
+    static int current_intensity = -2;
+    // 3.3-3.2V -> 4095(4000)
+    uint16_t lightValue = constrain(analogRead(LIGHT_SENS_PIN), higher_light, lower_light);
+
+    
+    uint8_t measured_intensity = map(
+        lightValue, 
+        higher_light, lower_light, 
+        high_intencity + (high_intencity-lower_intencity-1), lower_intencity);
+    
+    if (abs(measured_intensity-current_intensity) > 2)
+    {
+        current_intensity = measured_intensity;
+        measured_intensity = map(lightValue, higher_light, lower_light, high_intencity, lower_intencity);
+
+        display_SetIntensity(measured_intensity);
+    }
+}
+
+// ----------------------------------------------------------------------------
 
 void stateTime()
 {    
@@ -497,137 +409,4 @@ void stateTime()
     }
 }
 
-void loop()
-{
-    handleLoopFuncs();
-
-    // 3.3-3.2V -> 4095(4000)
-    uint16_t lightValue = constrain(analogRead(LIGHT_SENS_PIN), higher_light, lower_light);
-    uint8_t measured_intensity = map(lightValue, higher_light, lower_light, high_intencity, lower_intencity);
-
-    display_SetIntensity(measured_intensity);
-
-    if (button_short_press) 
-    {
-        BEEP(25);
-        button_short_press = false;
-        state++;
-        if (state == STATE_MAX) state = STATE_TIME;
-        telemetry_shown = false;
-        telemetry_counter = 0;
-    }
-
-    if (!current_button_state)
-    {
-        if (button_extra_long_press)
-        {
-            button_extra_long_press = false;
-            button_long_long_press = false;
-            button_long_press = false;
-            BEEPS(4,25,200);
-            
-            prefs.clear();
-            restart = true;
-            Serial.println("Reset WIFI settings. ESP will restart, connect to AP espclock.local and use 192.168.4.1 to manage WiFi connections");
-        }
-        else if (button_long_long_press)
-        {
-            button_long_long_press = false;
-            button_long_press = false;
-            BEEPS(3,25,200);
-
-            prefs.putString("ssid", "");
-            prefs.putString("pass", "");
-            restart = true;
-            Serial.println("Reset WIFI settings. ESP will restart, connect to AP espclock.local and use 192.168.4.1 to manage WiFi connections");
-        }
-        else if (button_long_press && !current_button_state)
-        {
-            BEEPS(2,25,200);
-            button_long_press = false;
-
-            ResetSettings();
-        }
-    }
-
-    switch(state)
-    {
-        case STATE_TIME:
-            stateTime();
-            break;
-
-        case STATE_TEMPERATURE:
-            if (!telemetry_shown)
-            {
-                telemetry_shown = true;
-                if (telemetry.valid)
-                {
-                    display_Temperature((int)telemetry.temperature);
-                }
-                else
-                {
-                    Serial.println("BMP280 measurements are not available");
-                    display_Invalid();
-                    delay(500);
-                    state = STATE_TIME;
-                }
-            }
-            else
-            {
-                if (TELEMETRY_SHOW_TIMEOUT)
-                {
-                    telemetry_shown = false;
-                    telemetry_counter = 0;
-                    state = STATE_TIME;
-                }
-            }
-            break;
-
-        case STATE_PRESSURE:
-            if (!telemetry_shown)
-            {
-                telemetry_shown = true;
-                display_Pressure((int)(telemetry.pressure/133.322));
-            }
-            else
-            {
-                if (TELEMETRY_SHOW_TIMEOUT)
-                {
-                    telemetry_shown = false;
-                    telemetry_counter = 0;
-                    state = STATE_TIME;
-                }
-            }
-            break;
-            
-        case STATE_MAX:
-            state = STATE_TIME;
-    }    
-}
-
-#ifdef ESP32
-void browseService(const char * service, const char * proto)
-{
-    Serial.printf("Browsing for service _%s._%s.local. ... ", service, proto);
-    int n = MDNS.queryService(service, proto);
-    if (n == 0) {
-        Serial.println("no services found");
-    } else {
-        Serial.print(n);
-        Serial.println(" service(s) found");
-        for (int i = 0; i < n; ++i) {
-            // Print details for each service found
-            Serial.print("  ");
-            Serial.print(i + 1);
-            Serial.print(": ");
-            Serial.print(MDNS.hostname(i));
-            Serial.print(" (");
-            Serial.print(MDNS.IP(i));
-            Serial.print(":");
-            Serial.print(MDNS.port(i));
-            Serial.println(")");
-        }
-    }
-    Serial.println();
-}
-#endif
+// ----------------------------------------------------------------------------
