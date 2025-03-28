@@ -86,7 +86,7 @@ void initConnectedServerEndpoints(void)
     server.on("/off", handleLedOff);
     server.on("/style.css", handleCss);
     server.on("/index.js", handleJs);
-    server.on("/timeread", handleTime);
+    server.on("/readtelemetry", handleTime);
     server.on("/timeoffset", handleTimeOffset);
     server.on("/timeformat", handleTimeFormat);
     server.on("/brightness", handleBrightness);
@@ -275,7 +275,14 @@ void handleLedOff(void)
 
 void handleTime(void)
 {
-    server.send(200, "text/plane", timeRead);
+    String json_response = 
+        "{\"time\": \"" + timeRead + "\"" + 
+        "," +
+         "\"temperature\": \"" + (telemetry.valid?(String(telemetry.temperature)+"C"):"-") + "\""
+         "," +
+         "\"pressure\":\"" + (telemetry.valid?String(telemetry.pressure/133.322)+"mm":"-") + "\""
+        "}";
+    server.send(200, "text/plane", json_response);
 }
 
 // ----------------------------------------------------------------------------

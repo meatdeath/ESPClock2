@@ -132,8 +132,9 @@ html {
   .time {
     font-size: 1.2rem;
     color: #2812a2;
-    text-align: center;
-    margin: 16px 0;
+  }
+  table {
+    padding-top:16px;
   }
   button {
     border: none;
@@ -216,11 +217,14 @@ html {
 }
 
 .first-column {
-  width: 40%;
+  width: 50%;
+  text-align: right;
+  /* padding-right: 16px; */
 }
 
 .parameter-column {
   padding: 8px 0;
+  width: 50%;
 }
 
 .range-container {
@@ -229,7 +233,7 @@ html {
 }
 
 .range-slider-container {
-  display:table-cell;
+  display: table-cell;
   width: auto; 
   vertical-align: middle;
 }
@@ -318,5 +322,18 @@ html {
 
 .modal-window div:not(:last-of-type) {
   margin-bottom: 15px;
+}
+
+.param-icon {
+  color: blue;
+  width: 24px;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0 8px;
+}
+
+.text-icon {
+  font-size: xx-small;
+  font-weight: 900;
 }
 

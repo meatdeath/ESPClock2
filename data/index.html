@@ -1,23 +1,66 @@
 <!DOCTYPE html>
-
 <html>
   <head>
+    
     <title>ESP CLOCK</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
     <script type="text/javascript" src="index.js"></script>
+    <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
   </head>
   <body onload="javascript:onPageLoad()">
     <div class="topnav">
       <table>
         <tr>
           <td class="header-corner-cell"></td>
-          <td class="header-middle-cell"><h1>ESP CLOCK</h1><div class="firmware-version">%FW_VERSION%</div></td>
-          <td class="header-corner-cell"><button class="button-ru" onclick="onLangClick('ru')">RU</button><button class="button-en" onclick="onLangClick('en')">EN</button></td>
+          <td class="header-middle-cell">
+            <h1>ESP CLOCK</h1>
+            <div class="firmware-version">
+              <span>%FW_VERSION%</span>
+              <span style="display: none">Update to v.2.1 available</span>
+            </div>
+          </td>
+          <td class="header-corner-cell">
+            <div>
+              <button class="button-ru" onclick="onLangClick('ru')">RU</button>
+              <button class="button-en" onclick="onLangClick('en')">EN</button>
+            </div>
+            <div style="height:18px"></div>
+          </td>
         </tr>
       </table>
+    </div>
+    <div class="content">
+      <div class="card-grid">
+        <div class="card">
+          <p class="card-title">TELEMETRY</p>
+          <table>
+            <tr>
+              <td class="first-column"><label class="time-string-label" for="time-string">Corrected time</label></td>
+              <td class='param-icon'><i class='fas fa-clock'></i></td>
+              <td class="parameter-column">
+                <input readonly type="text" readonly class="time" id="time-string" value="00:00:00">
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column"><label class="temperature-string-label" for="temperature-string">Temperature</label></td>
+              <td class='param-icon'><i class='fas fa-thermometer-half'></i></td>
+              <td class="parameter-column">
+                <input readonly type="text" readonly class="time" id="temperature-string" value="0&deg;C">
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column"><label class="pressure-string-label" for="pressure-string">Pressure</label></td>
+              <td class='param-icon'><i class='fas fa-tachometer-alt'></i></td>
+              <td class="parameter-column">
+                <input readonly type="text" readonly class="time" id="pressure-string" value="0mm">
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
     </div>
     <div class="content">
       <div class="card-grid">
@@ -25,27 +68,24 @@
           <p class="card-title">TIME SETUP</p>
           <table>
             <tr>
-              <td class="first-column"><label class="hours-offset" for="hours-offset">Corrected time</label></td>
-              <td class="parameter-column">
-                <input readonly type="text" readonly class="time" id="time-string" value="00:00:00">
-              </td>
-            </tr>
-            <tr>
               <td class="first-column"><label class="hours-offset" for="hours-offset">Hours offset</label></td>
+              <td class="param-icon" style="font-weight: bold;"><i class="fas fa-history"></i></td>
               <td class="parameter-column">
                 <input type="number" name="hours-offset" id="hours-offset" value="0" min="-12" max="12" onchange="setOffset()">
               </td>
             </tr>
             <tr>
               <td class="first-column"><label class="minutes-offset" for="minutes-offset">Minutes offset</label></td>
+              <td class="param-icon" style="font-weight: bold;"><i class="fas fa-history"></i></td>
               <td class="parameter-column">
-                <input class="parameter-column" type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15" onchange="setOffset()">
+                <input type="number" name="minutes-offset" id="minutes-offset" value="0" min="0" max="45" step="15" onchange="setOffset()">
               </td>
             </tr>
             <tr>
               <td class="first-column"><label class="time-format-text" for="time-format">Time format</label></td>
+              <td class="param-icon text-icon"><sup>12</sup>/<sub>24</sub></td>
               <td class="parameter-column">
-                <select name="time-format" id="time-format" onChange="setTimeFormat('time_format',this)">
+                <select name="time-format" id="time-format" onChange="setTimeFormat('time_format', this)">
                   <option value="12h">12h</option>
                   <option value="24h">24h</option>
                 </select>
@@ -53,12 +93,14 @@
             </tr>
             <tr>
               <td class="first-column"><label class="leading-zero-text" for="leading-zero">Hour leading zero</label></td>
+              <td class="param-icon text-icon">0x:xx</td>
               <td class="parameter-column">
                 <input type="checkbox" name="leading-zero" id="leading-zero" onChange="setTimeFormat('leading_zero',this)">
               </td>
             </tr>
             <tr>
               <td class="first-column"><label class="show-ntp-time-text" for="show-ntp-time">NTP server time</label></td>
+              <td class='param-icon'><i class='fas fa-server'></i></td>
               <td class="parameter-column">
                 <input type="checkbox"  name="show-ntp-time" id="show-ntp-time" onChange="setTimeFormat('show_ntp_time',this)">
               </td>
@@ -67,20 +109,7 @@
         </div>
       </div>
     </div>
-<!--
-    <div class="content">
-      <div class="card-grid">
-        <div class="card">
-          <p class="card-title"><i class="fas fa-lightbulb"></i> ONBOARD LED</p>
-          <p>
-            <a href="on"><button class="button-on">ON</button></a>
-            <a href="off"><button class="button-off">OFF</button></a>
-          </p>
-          <p class="state">State: %STATE%</p>
-        </div>
-      </div>
-    </div>
--->
+    
     <div class="content">
       <div class="card-grid">
         <div class="card">
@@ -88,6 +117,7 @@
           <table>
             <tr>
               <td class="first-column"><label class="orientation-text" for="orientation">Display Matrix Orientation</label></td>
+              <td class='param-icon'><i class='fas fa-redo'></i></td>
               <td class="parameter-column">
                 <select name="orientation" id="orientation" onChange="matrixRequest('orientation', this)">
                   <option value="0">0&#176;</option>
@@ -99,12 +129,12 @@
             </tr>
             <tr>
               <td class="first-column"><label class="matrix-order-text" for="reverse-matrix-order">Reverse matrix order</label></td>
-              <td class="parameter-column"><input type="checkbox" id="reverse-matrix-order" name="reverse-matrix-order"  onChange="matrixRequest('order', this)"></td>
+              <td class='param-icon'><i class='fas fa-exchange-alt'></i></td>
+              <td class="parameter-column"><input type="checkbox" id="reverse-matrix-order" name="reverse-matrix-order" onChange="matrixRequest('order', this)"></td>
             </tr>
             <tr>
-              <td class="first-column">
-                <label class="min-intensivity-text" for="min-intensivity">Lowest brightness</label>
-              </td>
+              <td class="first-column"><label class="min-intensivity-text" for="min-intensivity">Lowest brightness</label></td>
+              <td class='param-icon'><i class='fas fa-sun'></i></td>
               <td class="parameter-column">
                 <div class="range-container">
                   <div class="range-slider-container">
@@ -122,9 +152,8 @@
               </td>
             </tr>
             <tr>
-              <td class="first-column">
-                <label class="max-intensivity-text" for="max-intensivity">Highest brightness</label>
-              </td>
+              <td class="first-column"><label class="max-intensivity-text" for="max-intensivity">Highest brightness</label></td>
+              <td class='param-icon'><i class='far fa-sun'></i></td>
               <td class="parameter-column">
                 <div class="range-container">
                   <div class="range-slider-container">
@@ -142,9 +171,8 @@
               </td>
             </tr>
             <tr>
-              <td class="first-column">
-                <label class="light-on-min-intensivity-text" for="light-on-min-intensivity">Lightness on lowest brightness</label>
-              </td>
+              <td class="first-column"><label class="light-on-min-intensivity-text" for="light-on-min-intensivity">Lightness on lowest brightness</label></td>
+              <td class='param-icon'><i class='fas fa-sun'></i>&DownArrowBar;</td>
               <td class="parameter-column">
                 <div class="range-container">
                   <div class="range-slider-container">
@@ -162,9 +190,8 @@
               </td>
             </tr>
             <tr>
-              <td class="first-column">
-                <label class="light-on-max-intensivity-text" for="light-on-max-intensivity">Lightness on highest brightness</label>
-              </td>
+              <td class="first-column"><label class="light-on-max-intensivity-text" for="light-on-max-intensivity">Lightness on highest brightness</label></td>
+              <td class='param-icon'><i class='far fa-sun'></i>&UpArrowBar;</td>
               <td class="parameter-column">
                 <div class="range-container">
                   <div class="range-slider-container">
@@ -189,7 +216,6 @@
     <div class="content">
       <a href="default"><button class="button-default">DEFAULT</button></a>
       <a href="update"><button class="button-update">FW UPDATE</button></a>
-      <!--<a href="restart"><button class="button-restart">RESTART</button></a>-->
       <a href="#modal-restart" onClick="onRestart()"><button class="button-restart">RESTART</button></a>
       <a href="reset"><button class="button-reset">RESET</button></a>
     </div>

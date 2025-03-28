@@ -2,9 +2,10 @@
 function onPageLoad()
 {
     getOffset();
-    getTimeFormat();getTime();
+    getTimeFormat();
+    getTelemetry();
     matrixRequest(null, null);
-    setInterval(function() { getTime(); }, 1000); 
+    setInterval(function() { getTelemetry(); }, 1000); 
 }
 
 function onRestart()
@@ -31,17 +32,41 @@ function onLangClick(language)
     xhttp.send();
 }
 
-function getTime()
+function getTelemetry()
 {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function()
     {
         if (this.readyState == 4 && this.status == 200)
-        {
-            document.getElementById("time-string").value = this.responseText;
+        { 
+            var json = this.responseText;
+            var jsonObj = JSON.parse(json);
+            var time = jsonObj.time;
+            var temperature = jsonObj.temperature;
+            var pressure = jsonObj.pressure;
+            if (time != undefined) {
+                console.log("Time: " + time);
+                document.getElementById("time-string").value = time;
+            }
+            if (temperature != undefined) {
+                console.log("Temperature: " + temperature);
+                var temperature_string = "&deg;";
+                if (temperature.includes("C")) {
+                    temperature_string = temperature.replace("C","\u00B0C");
+                }
+                if (temperature.includes("F")) {
+                    temperature_string = temperature.replace("F","\u00B0F");
+                }
+
+                document.getElementById("temperature-string").value = temperature_string;
+            }
+            if (pressure != undefined) {
+                console.log("Pressure: " + pressure);
+                document.getElementById("pressure-string").value = pressure;
+            }
         }
     };
-    xhttp.open("GET", "timeread", true);
+    xhttp.open("GET", "readtelemetry", true);
     xhttp.send();
 }
 
