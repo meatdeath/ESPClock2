@@ -2,7 +2,7 @@
 function onPageLoad()
 {
     getOffset();
-    getTimeFormat();
+    telemetryFormat("",null);
     getTelemetry();
     matrixRequest(null, null);
     setInterval(function() { getTelemetry(); }, 1000); 
@@ -41,9 +41,11 @@ function getTelemetry()
         { 
             var json = this.responseText;
             var jsonObj = JSON.parse(json);
+
             var time = jsonObj.time;
             var temperature = jsonObj.temperature;
             var pressure = jsonObj.pressure;
+
             if (time != undefined) {
                 console.log("Time: " + time);
                 document.getElementById("time-string").value = time;
@@ -99,7 +101,7 @@ function setOffset()
     xhttp.send();
 }
 
-function setTimeFormat(paramName, obj)
+function telemetryFormat(paramName, obj)
 {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() 
@@ -122,6 +124,16 @@ function setTimeFormat(paramName, obj)
             {
                 console.log("show_ntp_time response: " + jsonObj.show_ntp_time);
                 document.getElementById("show-ntp-time").checked = jsonObj.show_ntp_time;
+            }
+            if (jsonObj.temperature_format != undefined) {
+                console.log("Temperature format: ", jsonObj.temperature_format);
+                if (jsonObj.temperature_format == "F") {
+                    document.getElementById("temperature-format-c").checked = false;
+                    document.getElementById("temperature-format-f").checked = true;
+                } else {
+                    document.getElementById("temperature-format-c").checked = true;
+                    document.getElementById("temperature-format-f").checked = false;
+                }
             }
         }
     };
@@ -153,6 +165,20 @@ function setTimeFormat(paramName, obj)
         xhttp.open("POST", "timeformat" + param, true);
         xhttp.send();
     }
+    else
+    if (paramName == "temperature_format")
+    {
+        var temperature_format = obj.value;
+        console.log("Temperature format: " + temperature_format);
+        param += String(temperature_format);
+        xhttp.open("POST", "timeformat" + param, true);
+        xhttp.send();
+    }
+    else
+    {
+        xhttp.open("POST", "timeformat?dummy=dummy", true);
+        xhttp.send();
+    }
 }
 
 function getOffset() 
@@ -176,43 +202,9 @@ function getOffset()
     xhttp.open("GET", "timeoffset", true);
     xhttp.send();
 }
-function getTimeFormat() 
-{
-    var xhttp = new XMLHttpRequest();
-
-    xhttp.onreadystatechange = function() 
-    {
-        if (this.readyState == 4 && this.status == 200) 
-        {
-            var json = this.responseText;
-            var jsonObj = JSON.parse(json);
-            var timeFormat = jsonObj.time_format;
-            var leadingZero = jsonObj.leading_zero;
-            var showNtpTime = jsonObj.show_ntp_time;
-            if (timeFormat != undefined)
-            {
-                console.log("Time format: " + timeFormat);
-                document.getElementById("time-format").value = timeFormat;
-            }
-            if (leadingZero != undefined)
-            {
-                console.log("Leading zero: " + leadingZero);
-                document.getElementById("leading-zero").checked = leadingZero;
-            }
-            if (showNtpTime != undefined)
-            {
-                console.log("Show NTP time: " + showNtpTime);
-                document.getElementById("show-ntp-time").checked = showNtpTime;
-            }
-        }
-    };
-
-    xhttp.open("GET", "timeformat", true);
-    xhttp.send();
-}
 
 function matrixRequest(paramName, obj)
-{;
+{
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() 
     {

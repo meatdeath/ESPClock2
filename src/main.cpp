@@ -10,6 +10,7 @@ hw_timer_t *ms_timer = NULL;
 long timeOffset = 0;
 String timeRead = "";
 bool show_ntp_time = true;
+bool temperature_in_c = true;
 
 // String ledState;// Stores LED state
 bool restart = false;

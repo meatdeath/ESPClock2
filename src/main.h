@@ -26,6 +26,7 @@
 #include <Adafruit_BMP280.h>
 #define _TASK_SLEEP_ON_IDLE_RUN
 #include <TaskSchedulerDeclarations.h>
+#include <Arduino_JSON.h>
 
 #include "web.h"
 #include "ota.h"
@@ -73,6 +74,7 @@ extern uint16_t lower_light;
 extern uint8_t lower_intencity;
 extern uint8_t high_intencity;
 extern bool show_ntp_time;
+extern bool temperature_in_c;
 extern hw_timer_t *ms_timer;
 extern Scheduler runner;
 

@@ -1,5 +1,59 @@
 #include "main.h"
 
+enum {
+    DICT_IDX = 0,
+    DICT_EN,    // 1
+    DICT_RU,    // 2
+    DICT_NUM
+};
+
+const String translation[][DICT_NUM] = {
+    // DICT_IDX, DICT_EN, DICT_RU
+   { "clock", "Clock", "Часы" },
+   { "telemetry", "Telemetry", "Телеметрия" },
+   { "corrected_time", "Corrected time", "Скорректированное время"},
+   { "temperature", "Temperature", "Температура" },
+   { "pressure", "Pressure", "Давление" },
+   { "telemetry_setup", "Telemetry setup", "Настройка телеметрии" },
+   { "hours_offset", "Hours offset", "Смещение в часах" },
+   { "minutes_offset", "Minutes offset", "Смещение в минутах" },
+   { "time_format", "Time format", "Формат времени" },
+   { "hour_leading_zero", "Hour leading zero", "Незначащий нуль в часах" },
+   { "ntp_server_time", "NTP server time", "Время NTP сервера" },
+   { "temperature_format", "Temperature format", "Формат температуры"},
+   { "display_setup", "Display setup", "Настройка дисплея" },
+   { "matrix_orientation", "Matrix orientation", "Оринтация матриц" },
+   { "reverse_matrix_order", "Reverse matrix order", "Обратный порядок матриц" },
+   { "lowest_brightness", "Lowest brightness", "Наименьшая яркость" },
+   { "highest_brightness", "Highest brightness", "Наибольшая яркость" },
+   { "light_low_brightness", "Lightness on lowest brightness", "Освещенность при наименьшей яркость" },
+   { "light_high_brightness", "Lightness on highest brightness", "Освещенность при наибольшей яркости" },
+   { "default", "Default", "По умолчанию" },
+   { "fw_update", "FW Update", "Обновить FW" },
+   { "restart", "Restart", "Перезапуск" },
+   { "reset", "Reset", "Сброс" },
+   { "time_format_12h", "12h", "12ч" },
+   { "time_format_24h", "24h", "24ч" },
+   { "pressure_mm", "mm", "мм" },
+};
+
+String findStringToTranslate(String src) {
+    int start = src.indexOf("{");
+    int end = src.lastIndexOf("}");
+    if (start == end) return "";
+    return src.substring(start+1, end);
+}
+
+String translateString(String src) {
+    for (int i = 0; i < sizeof(translation); i++) {
+        if (src == translation[i][0]) {
+            if (language == "ru") return translation[i][DICT_RU];
+            return translation[i][DICT_EN];
+        }
+    }
+    return src;
+}
+
 
 //Variables to save values from HTML form
 String ssid = "";
@@ -34,7 +88,7 @@ void handleJs(void);
 void handleTimeOffset(void);
 void handleTimeFormat(void);
 void handleBrightness(void);
-void handleTime(void);
+void handleTelemetry(void);
 void handleLedOff(void);
 void handleLedOn(void);
 void handleMatrix(void);
@@ -86,7 +140,7 @@ void initConnectedServerEndpoints(void)
     server.on("/off", handleLedOff);
     server.on("/style.css", handleCss);
     server.on("/index.js", handleJs);
-    server.on("/readtelemetry", handleTime);
+    server.on("/readtelemetry", handleTelemetry);
     server.on("/timeoffset", handleTimeOffset);
     server.on("/timeformat", handleTimeFormat);
     server.on("/brightness", handleBrightness);
@@ -172,14 +226,15 @@ void handleRoot(void)
 
     // Just serve the index page from SPIFFS when asked for
     File file;
-    if (language == "ru")
-    {
-        file = LittleFS.open("/index_ru.html", "r");
-    }
-    else
-    {
-        file = LittleFS.open("/index.html", "r");
-    }
+    // if (language == "ru")
+    // {
+    //     file = LittleFS.open("/index_ru.html", "r");
+    // }
+    // else
+    // {
+    //     file = LittleFS.open("/index.html", "r");
+    // }
+    file = LittleFS.open("/index.html", "r");
 
     // if(!digitalRead(BLUE_LED_PIN)) {
     //     if (language == "ru")
@@ -200,6 +255,30 @@ void handleRoot(void)
     while(file.available())
     {
         fileContent = file.readStringUntil('\n');
+
+        String toReplace = findStringToTranslate(fileContent);
+
+        // String toReplace = "";
+        // if (fileContent=="    <title>ESP {clock}</title>")
+        //     toReplace = "{clock}";
+
+        if (!toReplace.isEmpty())
+        {
+            String replaceWith = translateString(toReplace);
+            fileContent.replace(String("{")+toReplace+String("}"), replaceWith);
+        }
+
+        // if (fileContent.indexOf("{clock}") > 0)
+        // {
+        //     String toReplace = findStringToTranslate(fileContent);
+        //     fileContent = "    <title>ESP Clock</title>"+
+        //         String(fileContent.indexOf("{"))+","+
+        //         String(fileContent.lastIndexOf("}"))+","+
+        //         String(fileContent.length())+","+
+        //         toReplace+","+
+        //         (toReplace.isEmpty()?"empty":"not_empty")+"\n";
+        // }
+        
         String fw_version_template = "%FW_VERSION%";
         String state_template = "%STATE%";
         String min_intencity_template = "%MIN_INTENCITY%";
@@ -273,14 +352,24 @@ void handleLedOff(void)
 
 // ----------------------------------------------------------------------------
 
-void handleTime(void)
+void handleTelemetry(void)
 {
+    float temperature = telemetry.temperature;
+    if (temperature_in_c == false) temperature = temperature * 1.8 + 32;
+    float pressure = telemetry.pressure/133.322;
+    String temperature_string = "-";
+    String pressure_string = "-";
+    if (telemetry.valid)
+    {
+        temperature_string = String(temperature) + ((temperature_in_c)?"C":"F");
+        pressure_string = String(pressure) + ((language=="ru")?"мм":"mm");
+    }
     String json_response = 
         "{\"time\": \"" + timeRead + "\"" + 
         "," +
-         "\"temperature\": \"" + (telemetry.valid?(String(telemetry.temperature)+"C"):"-") + "\""
-         "," +
-         "\"pressure\":\"" + (telemetry.valid?String(telemetry.pressure/133.322)+"mm":"-") + "\""
+        "\"temperature\": \"" + temperature_string + "\"" +
+        "," +
+        "\"pressure\": \"" + pressure_string + "\"" +
         "}";
     server.send(200, "text/plane", json_response);
 }
@@ -369,6 +458,13 @@ void handleTimeFormat()
                 Serial.print("Show NTP time: " + show_ntp_time);
                 prefs.putBool("show_ntp_time", show_ntp_time);
             }
+            else
+            if (paramName == "temperature_format")
+            {
+                temperature_in_c = (paramValue=="C")?true:false;
+                Serial.print("Temperature format: " + temperature_in_c);
+                prefs.putBool("temperature_in_c", temperature_in_c);
+            }
         }
     }
     
@@ -378,6 +474,8 @@ void handleTimeFormat()
          "\"leading_zero\":" + (display_show_leading_zero?"true":"false") +
          "," +
          "\"show_ntp_time\":" + (show_ntp_time?"true":"false") +
+         "," +
+         "\"temperature_format\":" + (temperature_in_c?"\"C\"":"\"F\"") +
         "}";
     server.send(200, "text/plane", json_response);
 }

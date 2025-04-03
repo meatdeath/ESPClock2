@@ -57,7 +57,8 @@ html {
     margin-top: 8px;
     font-size: 1.2rem;
     font-weight: bold;
-    color: #034078
+    color: #034078;
+    text-transform: uppercase;
   }
   
   input[type=submit] {
@@ -117,6 +118,28 @@ html {
     padding: 10px;
     margin: 10px;
   }
+
+  input[type=radio] {
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    vertical-align: middle;
+  }
+
+  .radio-block {
+    margin: 8px 24px 8px 4px; 
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  .temperature-format-radio {
+    vertical-align: middle;
+  }
+
+  .temperature-format-label {
+    vertical-align: middle;
+    font-size: 20px;
+  }
   
   label {
     font-size: 1.2rem; 
@@ -139,7 +162,7 @@ html {
   button {
     border: none;
     color: #FEFCFB;
-    padding: 15px 32px;
+    padding: 16px 32px;
     text-align: center;
     font-size: 16px;
     min-width: 100px;
@@ -183,6 +206,11 @@ html {
   .button-restart:hover {
     background-color: #fc3838;
   } 
+
+.tool-button {
+  text-transform: uppercase;
+  border-radius: 24px;
+}
 
 
   button:active {
