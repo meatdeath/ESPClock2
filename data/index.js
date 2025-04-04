@@ -125,14 +125,24 @@ function telemetryFormat(paramName, obj)
                 console.log("show_ntp_time response: " + jsonObj.show_ntp_time);
                 document.getElementById("show-ntp-time").checked = jsonObj.show_ntp_time;
             }
-            if (jsonObj.temperature_format != undefined) {
-                console.log("Temperature format: ", jsonObj.temperature_format);
-                if (jsonObj.temperature_format == "F") {
-                    document.getElementById("temperature-format-c").checked = false;
-                    document.getElementById("temperature-format-f").checked = true;
+            if (jsonObj.temperature_units != undefined) {
+                console.log("Temperature units: ", jsonObj.temperature_units);
+                if (jsonObj.temperature_units == "F") {
+                    document.getElementById("temperature-units-c").checked = false;
+                    document.getElementById("temperature-units-f").checked = true;
                 } else {
-                    document.getElementById("temperature-format-c").checked = true;
-                    document.getElementById("temperature-format-f").checked = false;
+                    document.getElementById("temperature-units-c").checked = true;
+                    document.getElementById("temperature-units-f").checked = false;
+                }
+            }
+            if (jsonObj.pressure_units != undefined) {
+                console.log("Pressure units: ", jsonObj.pressure_units);
+                if (jsonObj.pressure_units == "mm") {
+                    document.getElementById("pressure-units-hpa").checked = false;
+                    document.getElementById("pressure_units-mm").checked = true;
+                } else {
+                    document.getElementById("pressure-units-hpa").checked = true;
+                    document.getElementById("pressure-units-mm").checked = false;
                 }
             }
         }
@@ -166,11 +176,20 @@ function telemetryFormat(paramName, obj)
         xhttp.send();
     }
     else
-    if (paramName == "temperature_format")
+    if (paramName == "temperature_units")
     {
-        var temperature_format = obj.value;
-        console.log("Temperature format: " + temperature_format);
-        param += String(temperature_format);
+        var temperature_units = obj.value;
+        console.log("Temperature units: " + temperature_units);
+        param += String(temperature_units);
+        xhttp.open("POST", "timeformat" + param, true);
+        xhttp.send();
+    }
+    else
+    if (paramName == "pressure_units")
+    {
+        var pressure_units = obj.value;
+        console.log("Pressure units: " + pressure_units);
+        param += String(pressure_units);
         xhttp.open("POST", "timeformat" + param, true);
         xhttp.send();
     }

@@ -106,16 +106,30 @@
               </td>
             </tr>
             <tr>
-              <td class="first-column"><label class="temperature-format-text" for="temperature-format">{temperature_format}</label></td>
+              <td class="first-column"><label class="temperature-units-text" for="temperature-uints">{temperature_units}</label></td>
               <td class='param-icon text-icon'><sup>C</sup>/<sub>F</sub></td>
               <td class="parameter-column" style="text-align: left;">
                 <div class="radio-block">
-                  <input type="radio" class="temperature-format-radio" id="temperature-format-c" name="temperature-format" value="C" onClick="telemetryFormat('temperature_format',this);">
-                  <label class="temperature-format-label" for="temperature-format-c">&#176;C</label>
+                  <input type="radio" class="temperature-units-radio" id="temperature-units-c" name="temperature-units" value="C" onClick="telemetryFormat('temperature_units',this);">
+                  <label class="temperature-units-label" for="temperature-units-c">&#176;C</label>
                 </div>
                 <div class="radio-block" style="margin: 10px 0 10px 4px; display: inline-block;">
-                  <input type="radio" class="temperature-format-radio" id="temperature-format-f" name="temperature-format" value="F" onClick="telemetryFormat('temperature_format',this);">
-                  <label class="temperature-format-label" for="temperature-format-f">&#176;F</label>
+                  <input type="radio" class="temperature-units-radio" id="temperature-units-f" name="temperature-units" value="F" onClick="telemetryFormat('temperature_units',this);">
+                  <label class="temperature-units-label" for="temperature-units-f">&#176;F</label>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="first-column"><label class="pressure-units-text" for="pressure-units">{pressure_units}</label></td>
+              <td class='param-icon text-icon'>P</td>
+              <td class="parameter-column" style="text-align: left;">
+                <div class="radio-block">
+                  <input type="radio" class="pressure-units-radio" id="pressure-units-hpa" name="pressure-units" value="hpa" onClick="telemetryFormat('pressure_units',this);">
+                  <label class="pressure-units-label" for="pressure-units-hpa">{pressure_hpa}</label>
+                </div>
+                <div class="radio-block" style="margin: 10px 0 10px 4px; display: inline-block;">
+                  <input type="radio" class="pressure-units-radio" id="pressure-units-mm" name="pressure-units" value="mm" onClick="telemetryFormat('pressure_units',this);">
+                  <label class="pressure-units-label" for="pressure-units-mm">{pressure_mm}</label>
                 </div>
               </td>
             </tr>

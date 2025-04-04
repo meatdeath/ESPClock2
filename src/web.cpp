@@ -20,7 +20,7 @@ const String translation[][DICT_NUM] = {
    { "time_format", "Time format", "Формат времени" },
    { "hour_leading_zero", "Hour leading zero", "Незначащий нуль в часах" },
    { "ntp_server_time", "NTP server time", "Время NTP сервера" },
-   { "temperature_format", "Temperature format", "Формат температуры"},
+   { "temperature_units", "Temperature units", "Единицы измерения температуры"},
    { "display_setup", "Display setup", "Настройка дисплея" },
    { "matrix_orientation", "Matrix orientation", "Оринтация матриц" },
    { "reverse_matrix_order", "Reverse matrix order", "Обратный порядок матриц" },
@@ -34,7 +34,9 @@ const String translation[][DICT_NUM] = {
    { "reset", "Reset", "Сброс" },
    { "time_format_12h", "12h", "12ч" },
    { "time_format_24h", "24h", "24ч" },
+   { "pressure_units", "Pressure units", "Единицы измерения давления" },
    { "pressure_mm", "mm", "мм" },
+   { "pressure_hpa", "hPa", "гПа" },
 };
 
 String findStringToTranslate(String src) {
@@ -355,14 +357,24 @@ void handleLedOff(void)
 void handleTelemetry(void)
 {
     float temperature = telemetry.temperature;
-    if (temperature_in_c == false) temperature = temperature * 1.8 + 32;
-    float pressure = telemetry.pressure/133.322;
+    if (temperature_units == "F") temperature = temperature * 1.8 + 32;
+    float pressure = telemetry.pressure;
+    if (pressure_units == "mm") pressure /= 133.322;
+    else pressure /= 100;
     String temperature_string = "-";
     String pressure_string = "-";
     if (telemetry.valid)
     {
-        temperature_string = String(temperature) + ((temperature_in_c)?"C":"F");
-        pressure_string = String(pressure) + ((language=="ru")?"мм":"mm");
+        temperature_string = String(temperature) + temperature_units;
+        pressure_string = String(pressure);
+        if (pressure_units == "mm") 
+        {
+            pressure_string += ((language=="ru")?"мм":"mm");
+        } 
+        else
+        {
+            pressure_string += ((language=="ru")?"гПа":"hPa");
+        }
     }
     String json_response = 
         "{\"time\": \"" + timeRead + "\"" + 
@@ -459,23 +471,32 @@ void handleTimeFormat()
                 prefs.putBool("show_ntp_time", show_ntp_time);
             }
             else
-            if (paramName == "temperature_format")
+            if (paramName == "temperature_units")
             {
-                temperature_in_c = (paramValue=="C")?true:false;
-                Serial.print("Temperature format: " + temperature_in_c);
-                prefs.putBool("temperature_in_c", temperature_in_c);
+                temperature_units = paramValue;
+                Serial.print("Temperature format: " + temperature_units);
+                prefs.putBool("temperature_units", temperature_units);
+            }
+            else
+            if (paramName == "pressure_units")
+            {
+                pressure_units = paramValue;
+                Serial.print("Pressure units: " + pressure_units);
+                prefs.putString("pressure_units", pressure_units);
             }
         }
     }
     
     String json_response = 
         "{\"time_format\": " + String((time_format==TIME_FORMAT_12H)?"\"12h\"":"\"24h\"") + 
-        "," +
-         "\"leading_zero\":" + (display_show_leading_zero?"true":"false") +
-         "," +
-         "\"show_ntp_time\":" + (show_ntp_time?"true":"false") +
-         "," +
-         "\"temperature_format\":" + (temperature_in_c?"\"C\"":"\"F\"") +
+          "," +
+          "\"leading_zero\":" + (display_show_leading_zero?"true":"false") +
+          "," +
+          "\"show_ntp_time\":" + (show_ntp_time?"true":"false") +
+          "," +
+          "\"temperature_units\": \"" + temperature_units + "\"" +
+          "," +
+          "\"pressure_units\": \"" + pressure_units + "\"" +
         "}";
     server.send(200, "text/plane", json_response);
 }

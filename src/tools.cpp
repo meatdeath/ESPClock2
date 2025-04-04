@@ -17,7 +17,8 @@ void ResetSettings()
     time_format                 = TIME_FORMAT_24H; 
     display_show_leading_zero   = true; 
     show_ntp_time               = true;
-    temperature_in_c            = true;
+    temperature_units            = "C";
+    pressure_units              = "mm";
     prefs.putInt("lower_intencity", 1);
     prefs.putInt("high_intencity", 8);
     prefs.putInt("higher_light", 200);
@@ -28,7 +29,8 @@ void ResetSettings()
     prefs.putUInt("timeFormat", TIME_FORMAT_24H);
     prefs.putBool("leading_zero", true);
     prefs.putBool("show_ntp_time", true);
-    prefs.putBool("temperature_in_c", true);
+    prefs.putString("temperature_units", "C");
+    prefs.putString("pressure_units", "mm");
 }
 
 // ----------------------------------------------------------------------------
@@ -54,7 +56,8 @@ void ReadSettings()
     time_format                 = prefs.getUInt("timeFormat", TIME_FORMAT_24H);
     display_show_leading_zero   = prefs.getBool("leading_zero", true);
     show_ntp_time               = prefs.getBool("show_ntp_time", true);
-    temperature_in_c            = prefs.getBool("temperature_in_c", true);
+    temperature_units            = prefs.getString("temperature_units", "C");
+    pressure_units              = prefs.getString("pressure_units", "mm");
 
     Serial.println("done");
 }
