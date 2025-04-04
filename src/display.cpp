@@ -79,7 +79,9 @@ const digits_t digits[] PROGMEM =
         {3, {0x10, 0x10, 0x10}},             // -
         {4, {0x06, 0x09, 0x09, 0x06}},       // Degree symbol
         {5, {0x7E, 0x81, 0x81, 0x81, 0x42}}, // C (Celcius)
-        {5, {0xF8, 0x30, 0x40, 0x30, 0xF8}}, // m
+        {5, {0xF8, 0x30, 0x40, 0x30, 0xF8}}, // m (RU)
+        {5, {0xF8, 0x08, 0xF0, 0x08, 0xF0}}, // m (EN)
+        {5, {0xFF, 0x09, 0x09, 0x09, 0x01}}, // F (Fahrengeit)
 };
 
 // ----------------------------------------------------------------------------
@@ -267,22 +269,43 @@ void display_Invalid(void)
 
 // ----------------------------------------------------------------------------
 
-void display_Pressure(uint16_t pressure)
+void display_Pressure(float pressure_f)
 {
     uint8_t size;
     uint8_t i, offset = 1;
 
-    uint8_t symbols[] =
-        {
-            (uint8_t)((pressure / 100) % 10),
-            (uint8_t)((pressure / 10) % 10),
-            (uint8_t)(pressure % 10),
-            DISPLAY_SYMBOL_M,
-            DISPLAY_SYMBOL_M};
+    int pressure;
+    if (pressure_units == "mm")
+        pressure = (int)pressure_f/133.322;
+    else
+        pressure = (int)(pressure_f);
+
+    uint8_t unit_symbol = (language=="ru")?DISPLAY_SYMBOL_RU_M:DISPLAY_SYMBOL_EN_M;
+
+    uint8_t symbols_mm[] = {
+        (uint8_t)((pressure / 100) % 10),
+        (uint8_t)((pressure / 10) % 10),
+        (uint8_t)(pressure % 10),
+        unit_symbol,
+        unit_symbol
+    };
+    uint8_t symbols_hpa[] {
+        (uint8_t)((pressure / 1000) % 10),
+        (uint8_t)((pressure / 100) % 10),
+        (uint8_t)((pressure / 10) % 10),
+        (uint8_t)(pressure % 10)
+    };
+
+    size_t symbols_size = sizeof(symbols_hpa);
+    uint8_t *symbols = symbols_hpa;
+    if (pressure_units == "mm") {
+        symbols_size = sizeof(symbols_mm);
+        symbols = symbols_mm;
+    }
 
     display_Clear();
 
-    for (int j = 0; j < sizeof(symbols); j++)
+    for (int j = 0; j < symbols_size; j++)
     {
         size = pgm_read_byte(&(digits[symbols[j]].size));
         for (i = 0; i < size; i++)
@@ -310,6 +333,8 @@ void display_Temperature(int temperature)
         negative = true;
         temperature = -temperature;
     }
+    
+    if (temperature_units == "F") temperature = temperature * 1.8 + 32;
 
     uint8_t t1 = temperature / 10;
     uint8_t t2 = temperature % 10;
@@ -363,11 +388,13 @@ void display_Temperature(int temperature)
         display_Row(offset + i, pgm_read_byte(&(digits[DISPLAY_SYMBOL_DEGREE].array[i])));
     }
 
+    uint8_t unit_symbol = (temperature_units=="F")?DISPLAY_SYMBOL_EN_F:DISPLAY_SYMBOL_C;
+
     offset += size + 1;
-    size = pgm_read_byte(&(digits[DISPLAY_SYMBOL_C].size));
+    size = pgm_read_byte(&(digits[unit_symbol].size));
     for (i = 0; i < size; i++)
     {
-        display_Row(offset + i, pgm_read_byte(&(digits[DISPLAY_SYMBOL_C].array[i])));
+        display_Row(offset + i, pgm_read_byte(&(digits[unit_symbol].array[i])));
     }
 
     display_Commit();
@@ -447,9 +474,9 @@ void display_Time(byte hours, byte minutes, byte seconds, bool show_colon)
 void display_StartingString(void)
 {
     display_Clear();
-    for (byte i = 0; i < pgm_read_byte(&(screens[DISPLAY_STARTING].size)); i++)
+    for (byte i = 0; i < pgm_read_byte(&(screens[DISPLAY_RU_STARTING].size)); i++)
     {
-        display_Row(i, pgm_read_byte(&(screens[DISPLAY_STARTING].array[i])));
+        display_Row(i, pgm_read_byte(&(screens[DISPLAY_RU_STARTING].array[i])));
     }
     display_Commit();
 }
@@ -459,9 +486,9 @@ void display_StartingString(void)
 void display_ClockString(void)
 {
     display_Clear();
-    for (byte i = 0; i < pgm_read_byte(&(screens[DISPLAY_CLOCK_STR].size)); i++)
+    for (byte i = 0; i < pgm_read_byte(&(screens[DISPLAY_RU_CLOCK].size)); i++)
     {
-        display_Row(i, pgm_read_byte(&(screens[DISPLAY_CLOCK_STR].array[i])));
+        display_Row(i, pgm_read_byte(&(screens[DISPLAY_RU_CLOCK].array[i])));
     }
     display_Commit();
 }

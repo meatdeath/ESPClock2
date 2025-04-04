@@ -32,13 +32,16 @@ enum __display_symbols {
     DISPLAY_SYMBOL_DASH,
     DISPLAY_SYMBOL_DEGREE,
     DISPLAY_SYMBOL_C,
-    DISPLAY_SYMBOL_M,
+    DISPLAY_SYMBOL_RU_M,
+    DISPLAY_SYMBOL_EN_M,
+    DISPLAY_SYMBOL_EN_F,
 };
 
 enum __display_screens {
-    DISPLAY_SYMBOL_ZAPUSK,
-    DISPLAY_STARTING,
-    DISPLAY_CLOCK_STR
+    DISPLAY_EN_STARTING,
+    DISPLAY_RU_STARTING,
+    DISPLAY_RU_CLOCK,
+    DISPLAY_EN_CLOCK,
 };
 
 //-----------------------------------------------------------------------------
@@ -50,7 +53,7 @@ void display_Clear(void);
 void display_SetIntensity(byte intensity);
 void display_SetBrightness(uint8_t percentage);
 
-void display_Pressure(uint16_t pressure);
+void display_Pressure(float pressure);
 void display_Temperature(int temperature);
 void display_Time(byte hours, byte minutes, byte seconds, bool show_colon);
 void display_Invalid(void);

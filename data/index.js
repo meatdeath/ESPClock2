@@ -139,7 +139,7 @@ function telemetryFormat(paramName, obj)
                 console.log("Pressure units: ", jsonObj.pressure_units);
                 if (jsonObj.pressure_units == "mm") {
                     document.getElementById("pressure-units-hpa").checked = false;
-                    document.getElementById("pressure_units-mm").checked = true;
+                    document.getElementById("pressure-units-mm").checked = true;
                 } else {
                     document.getElementById("pressure-units-hpa").checked = true;
                     document.getElementById("pressure-units-mm").checked = false;

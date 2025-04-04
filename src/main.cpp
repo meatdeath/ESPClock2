@@ -264,7 +264,7 @@ void loop()
             if (!telemetry_shown)
             {
                 telemetry_shown = true;
-                display_Pressure((int)(telemetry.pressure/133.322));
+                display_Pressure(telemetry.pressure);
             }
             else
             {
