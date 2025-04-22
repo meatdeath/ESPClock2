@@ -1,11 +1,20 @@
+let rangeSelect;
+let combinedChart;
 
 function onPageLoad()
 {
+    rangeSelect = document.getElementById('rangeSelect');
     getOffset();
     telemetryFormat("",null);
     getTelemetry();
     matrixRequest(null, null);
     setInterval(function() { getTelemetry(); }, 1000); 
+    setInterval(function() { fetchAndDraw(rangeSelect.value); }, 60000);
+    fetchAndDraw(rangeSelect.value);
+    rangeSelect.addEventListener('change', () => {
+        console.log("Show graph: " + rangeSelect.value);
+        fetchAndDraw(rangeSelect.value);
+    });
 }
 
 function onRestart()
@@ -134,6 +143,7 @@ function telemetryFormat(paramName, obj)
                     document.getElementById("temperature-units-c").checked = true;
                     document.getElementById("temperature-units-f").checked = false;
                 }
+                fetchAndDraw(rangeSelect.value);
             }
             if (jsonObj.pressure_units != undefined) {
                 console.log("Pressure units: ", jsonObj.pressure_units);
@@ -144,6 +154,7 @@ function telemetryFormat(paramName, obj)
                     document.getElementById("pressure-units-hpa").checked = true;
                     document.getElementById("pressure-units-mm").checked = false;
                 }
+                fetchAndDraw(rangeSelect.value);
             }
         }
     };
@@ -299,5 +310,127 @@ function onLightRangesChange()
 
     xhttp.open("POST", "brightness"+param, true);
     xhttp.send();
-
 }
+
+
+function fetchAndDraw(range) {
+    console.log(`Loading /data_${range}.json ...`);
+
+    var temperatureUnits = 
+        document.getElementsByName("temperature-units")[0].checked?
+            document.getElementsByName("temperature-units")[0].value:
+            document.getElementsByName("temperature-units")[1].value;
+
+    var pressureUnits = 
+        document.getElementsByName("pressure-units")[0].checked?
+            document.getElementsByName("pressure-units")[0].value:
+            document.getElementsByName("pressure-units")[1].value;
+
+    fetch(`/data_${range}.json`)
+        .then(res => res.json())
+        .then(data => {
+            const labels = data.map(function (r) {
+                var datetime = new Date(r.t * 1000);
+                return  datetime.toLocaleString('default', { month: 'short' }) + " " + 
+                        datetime.getDate() + " " + 
+                        datetime.getHours() + "h";
+            });
+            //const temps = data.map(r => r.temp);
+            const temps = data.map(function(r) {return r.temp.toFixed(1);});
+            const hums  = data.map(r => r.hum);
+            const pres  = data.map(r => r.pres);
+
+            if (combinedChart) combinedChart.destroy();
+
+            const ctx = document.getElementById('chart').getContext('2d');
+            combinedChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Temperature (°'+temperatureUnits+')',
+                            data: temps,
+                            yAxisID: 'y1',
+                            borderColor: 'red',
+                            backgroundColor: 'red',
+                            tension: 0.2,
+                            fill: false
+                        },
+                        {
+                            label: 'Humidity (%)',
+                            data: hums,
+                            yAxisID: 'y2',
+                            borderColor: 'blue',
+                            backgroundColor: 'blue',
+                            tension: 0.2,
+                            fill: false
+                        },
+                        {
+                            label: 'Pressure ('+pressureUnits+')',
+                            data: pres,
+                            yAxisID: 'y3',
+                            borderColor: 'green',
+                            backgroundColor: 'green',
+                            tension: 0.2,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // 🔥 нужно, чтобы высота работала как в CSS
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    stacked: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            min: 10,
+                            max: 35,
+                            title: {
+                                display: true,
+                                text: 'Temperature, °' + temperatureUnits
+                            }
+                        },
+                        y2: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            min: 0,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Humidity, %'
+                            }
+                        },
+                        y3: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            min: 720,
+                            max: 770,
+                            title: {
+                                display: true,
+                                text: 'Pressure, '+pressureUnits
+                            },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+      });
+  }

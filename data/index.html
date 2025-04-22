@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
     <script type="text/javascript" src="index.js"></script>
     <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body onload="javascript:onPageLoad()">
     <div class="topnav">
@@ -257,6 +258,19 @@
         <div>will be accessible in 10-20sec.</div>
       </div>
     </div>
+
+    <div id="rangeContainer">
+      <label for="rangeSelect">{select_range}</label>
+      <select id="rangeSelect">
+        <option value="short">{48_hours_(1h)}</option>
+        <option value="mid">{7_days_(6h)}</option>
+        <option value="long">{30_days_(24h)}</option>
+      </select>
+    </div>
+
+  <div id="chart-container">
+    <canvas id="chart"></canvas>
+  </div>
 
   </body>
 </html>

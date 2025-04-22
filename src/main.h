@@ -35,6 +35,7 @@
 #include "buzer.h"
 #include "bmp.h"
 #include "tools.h"
+#include "telemetry_log.h"
 
 #define VERSION_MAJOR   2
 #define VERSION_MINOR   0

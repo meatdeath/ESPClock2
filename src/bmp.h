@@ -6,6 +6,7 @@ typedef struct telemetry_st
     bool valid;
     float temperature;
     float pressure;
+    float humidity;
 } 
 telemetry_t;
 
