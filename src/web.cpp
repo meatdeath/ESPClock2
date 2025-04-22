@@ -7,7 +7,9 @@ enum {
     DICT_NUM
 };
 
-const String translation[][DICT_NUM] = {
+#define DICT_SIZE 32
+
+const String translation[DICT_SIZE][DICT_NUM] = {
     // DICT_IDX, DICT_EN, DICT_RU
    { "clock", "Clock", "Часы" },
    { "telemetry", "Telemetry", "Телеметрия" },
@@ -22,7 +24,7 @@ const String translation[][DICT_NUM] = {
    { "ntp_server_time", "NTP server time", "Время NTP сервера" },
    { "temperature_units", "Temperature units", "Единицы измерения температуры"},
    { "display_setup", "Display setup", "Настройка дисплея" },
-   { "matrix_orientation", "Matrix orientation", "Оринтация матриц" },
+   { "matrix_orientation", "Matrix orientation", "Ориентация матриц" },
    { "reverse_matrix_order", "Reverse matrix order", "Обратный порядок матриц" },
    { "lowest_brightness", "Lowest brightness", "Наименьшая яркость" },
    { "highest_brightness", "Highest brightness", "Наибольшая яркость" },
@@ -37,6 +39,10 @@ const String translation[][DICT_NUM] = {
    { "pressure_units", "Pressure units", "Единицы измерения давления" },
    { "pressure_mm", "mm", "мм" },
    { "pressure_hpa", "hPa", "гПа" },
+   { "select_range", "Select range", "Выберите дипазон"},
+   { "48_hours_(1h)", "48 hours (1h)", "48 часов (1ч)" },
+   { "7_days_(6h)", "7 days (6h)", "7 дней (6ч)" },
+   { "30_days_(24h)", "30 days (24h)", "30 дней (24ч)" },
 };
 
 String findStringToTranslate(String src) {
@@ -47,7 +53,8 @@ String findStringToTranslate(String src) {
 }
 
 String translateString(String src) {
-    for (int i = 0; i < sizeof(translation); i++) {
+    //Serial.printf("Vacabulary size: %d\n", DICT_SIZE);
+    for (int i = 0; i < DICT_SIZE; i++) {
         if (src == translation[i][0]) {
             if (language == "ru") return translation[i][DICT_RU];
             return translation[i][DICT_EN];
@@ -96,6 +103,10 @@ void handleLedOn(void);
 void handleMatrix(void);
 void handleWifiManagerJs(void);
 void handleDefault(void);
+void handleShortBuffer();
+void handleMidBuffer();
+void handleLongBuffer();
+void serveBuffer(const char* filename, int count);
 
 // ****************************************************************************
 
@@ -147,7 +158,52 @@ void initConnectedServerEndpoints(void)
     server.on("/timeformat", handleTimeFormat);
     server.on("/brightness", handleBrightness);
     server.on("/matrix", handleMatrix);
+    server.on("/data_short.json", handleShortBuffer);
+    server.on("/data_mid.json", handleMidBuffer);
+    server.on("/data_long.json", handleLongBuffer);  
 }
+// ----------------------------------------------------------------------------
+
+void handleShortBuffer() {
+    serveBuffer("/short.bin", 48);
+}
+
+void handleMidBuffer() {
+    serveBuffer("/mid.bin", 28);
+}
+
+void handleLongBuffer() {
+    serveBuffer("/long.bin", 30);
+}
+
+// ----------------------------------------------------------------------------
+
+void serveBuffer(const char* filename, int count) {
+    printBuffer("/short.bin", 48);
+    File file = LittleFS.open(filename, FILE_READ);
+    if (!file) {
+        server.send(500, "text/plain", "File not found");
+        return;
+    }
+  
+    String json = "[";
+    for (int i = 0; i < count; i++) {
+        SensorRecord r;
+        file.read((uint8_t*)&r, sizeof(SensorRecord));
+        if (r.time > 0) {
+            if (json.length() > 1) json += ",";
+            String json_string = String("{\"t\":") + r.time +
+                    ",\"temp\":" + ((temperature_units=="C")?r.temperature:r.temperature*1.8+32) +
+                    ",\"hum\":" + r.humidity +
+                    ",\"pres\":" + ((pressure_units == "mm")?(int)(r.pressure/133.322):(int)(r.pressure/100)) + "}";
+            json += json_string;
+            //Serial.println(json_string);
+        }
+    }
+    file.close();
+    json += "]";
+    server.send(200, "application/json", json);
+}  
 
 // ----------------------------------------------------------------------------
 
@@ -266,8 +322,10 @@ void handleRoot(void)
 
         if (!toReplace.isEmpty())
         {
+            //Serial.printf("Found a string to translate: %s\n", toReplace.c_str());
             String replaceWith = translateString(toReplace);
             fileContent.replace(String("{")+toReplace+String("}"), replaceWith);
+            //Serial.printf("Found translation: %s\n", replaceWith.c_str());
         }
 
         // if (fileContent.indexOf("{clock}") > 0)
@@ -294,38 +352,36 @@ void handleRoot(void)
             fileContent.replace(fw_version_template, version_string);
         }
         
-        // if(fileContent.indexOf(state_template) >= 0)
-        // {
-        //     fileContent.replace(state_template, ledState);
-        //     Serial.println("State parameter updated");
-        // }
         if(fileContent.indexOf(min_intencity_template) >= 0)
         {
             fileContent.replace(min_intencity_template, String(lower_intencity));
-            Serial.println("State parameter updated");
+            //Serial.println("State parameter updated");
         }
         if(fileContent.indexOf(max_intencity_template) >= 0)
         {
             fileContent.replace(max_intencity_template, String(high_intencity));
-            Serial.println("State parameter updated");
+            //Serial.println("State parameter updated");
         }
         if(fileContent.indexOf(light_on_min_intencity_template) >= 0)
         {
             fileContent.replace(light_on_min_intencity_template, String(LIGHT_MAX-lower_light));
-            Serial.println("State parameter updated");
+            //Serial.println("State parameter updated");
         }
         if(fileContent.indexOf(light_on_max_intencity_template) >= 0)
         {
             fileContent.replace(light_on_max_intencity_template, String(LIGHT_MAX-higher_light));
-            Serial.println("State parameter updated");
+            //Serial.println("State parameter updated");
         }
 
         server.sendContent(fileContent);
+        yield();
         //break;
     }
 
     //server.streamFile(file, "text/html");
     file.close();
+    
+    Serial.println("index.html uploaded");
 }
 
 // ----------------------------------------------------------------------------
@@ -475,7 +531,7 @@ void handleTimeFormat()
             {
                 temperature_units = paramValue;
                 Serial.print("Temperature format: " + temperature_units);
-                prefs.putBool("temperature_units", temperature_units);
+                prefs.putString("temp_units", temperature_units);
             }
             else
             if (paramName == "pressure_units")

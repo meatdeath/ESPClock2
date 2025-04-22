@@ -29,7 +29,7 @@ void ResetSettings()
     prefs.putUInt("timeFormat", TIME_FORMAT_24H);
     prefs.putBool("leading_zero", true);
     prefs.putBool("show_ntp_time", true);
-    prefs.putString("temperature_units", "C");
+    prefs.putString("temp_units", "C");
     prefs.putString("pressure_units", "mm");
 }
 
@@ -56,7 +56,7 @@ void ReadSettings()
     time_format                 = prefs.getUInt("timeFormat", TIME_FORMAT_24H);
     display_show_leading_zero   = prefs.getBool("leading_zero", true);
     show_ntp_time               = prefs.getBool("show_ntp_time", true);
-    temperature_units            = prefs.getString("temperature_units", "C");
+    temperature_units            = prefs.getString("temp_units", "C");
     pressure_units              = prefs.getString("pressure_units", "mm");
 
     Serial.println("done");
