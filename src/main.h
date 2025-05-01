@@ -26,6 +26,7 @@
 #include <Adafruit_BMP280.h>
 #define _TASK_SLEEP_ON_IDLE_RUN
 #include <TaskSchedulerDeclarations.h>
+#include <HTTPClient.h>
 #include <Arduino_JSON.h>
 
 #include "web.h"
@@ -36,6 +37,7 @@
 #include "bmp.h"
 #include "tools.h"
 #include "telemetry_log.h"
+#include "iana2posix.h"
 
 #define VERSION_MAJOR   2
 #define VERSION_MINOR   0
@@ -65,11 +67,8 @@
 extern Preferences prefs;
 
 //Variables to save values from HTML form
-extern long timeOffset;
 extern bool restart;
 extern String timeRead;
-// Stores LED state
-// extern String ledState;
 extern uint16_t higher_light;
 extern uint16_t lower_light;
 extern uint8_t lower_intencity;
@@ -79,7 +78,12 @@ extern String temperature_units;
 extern String pressure_units;
 extern hw_timer_t *ms_timer;
 extern Scheduler runner;
+extern String detectedTimezone;
+extern String setupTimezone;
+extern bool timezoneDetected;
 
 void ResetSettings();
+void timezoneSetup(String timezone);
+void timezoneDetect();
 
 #endif // __MAIN_H__

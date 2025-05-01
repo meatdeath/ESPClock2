@@ -12,8 +12,7 @@ void ResetSettings()
     higher_light                = 200; 
     lower_light                 = 3000; 
     matrix_order                = "reverse"; 
-    matrix_orientation          = MATRIX_ORIENTATION_0; 
-    timeOffset                  = 0; 
+    matrix_orientation          = MATRIX_ORIENTATION_0;
     time_format                 = TIME_FORMAT_24H; 
     display_show_leading_zero   = true; 
     show_ntp_time               = true;
@@ -25,12 +24,15 @@ void ResetSettings()
     prefs.putInt("lower_light", 3000);
     prefs.putString("matrix_order", "reverse");
     prefs.putInt("orientation", MATRIX_ORIENTATION_0);
-    prefs.putInt("timeOffset", 0);
     prefs.putUInt("timeFormat", TIME_FORMAT_24H);
     prefs.putBool("leading_zero", true);
     prefs.putBool("show_ntp_time", true);
     prefs.putString("temp_units", "C");
     prefs.putString("pressure_units", "mm");
+    prefs.putString("timezone", "America/Toronto");
+    
+    setenv("TZ", getPosixTZ("America/Toronto").c_str(), 1);
+    tzset();
 }
 
 // ----------------------------------------------------------------------------
@@ -52,12 +54,15 @@ void ReadSettings()
     matrix_order        = prefs.getString("matrix_order", "reverse");
     matrix_orientation  = (matrix_orientation_t)prefs.getInt("orientation", MATRIX_ORIENTATION_0);
 
-    timeOffset                  = prefs.getInt("timeOffset", 0);
     time_format                 = prefs.getUInt("timeFormat", TIME_FORMAT_24H);
     display_show_leading_zero   = prefs.getBool("leading_zero", true);
     show_ntp_time               = prefs.getBool("show_ntp_time", true);
-    temperature_units            = prefs.getString("temp_units", "C");
+    temperature_units           = prefs.getString("temp_units", "C");
     pressure_units              = prefs.getString("pressure_units", "mm");
+    setupTimezone               = prefs.getString("timezone", "America/Toronto");
+    
+    setenv("TZ", getPosixTZ("America/Toronto").c_str(), 1);
+    tzset();
 
     Serial.println("done");
 }
