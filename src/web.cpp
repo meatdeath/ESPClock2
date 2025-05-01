@@ -7,13 +7,13 @@ enum {
     DICT_NUM
 };
 
-#define DICT_SIZE 32
+#define DICT_SIZE 44
 
 const String translation[DICT_SIZE][DICT_NUM] = {
     // DICT_IDX, DICT_EN, DICT_RU
    { "clock", "Clock", "Часы" },
    { "telemetry", "Telemetry", "Телеметрия" },
-   { "corrected_time", "Corrected time", "Скорректированное время"},
+   { "time", "Time", "Время"},
    { "temperature", "Temperature", "Температура" },
    { "pressure", "Pressure", "Давление" },
    { "telemetry_setup", "Telemetry setup", "Настройка телеметрии" },
@@ -43,6 +43,18 @@ const String translation[DICT_SIZE][DICT_NUM] = {
    { "48_hours_(1h)", "48 hours (1h)", "48 часов (1ч)" },
    { "7_days_(6h)", "7 days (6h)", "7 дней (6ч)" },
    { "30_days_(24h)", "30 days (24h)", "30 дней (24ч)" },
+   { "timezone", "Timezone", "Временная зона" },
+   { "update available to version", "Update available to version", "Доступно обновление до версии" },
+   { "restarting", "Restarting", "Перезапуск" },
+   { "restarting_msg_line1", "Clock is restarting now and", "Часы сейчас перезапустятся и" },
+   { "restarting_msg_line2", "will be accessible in 10-20 sec.", "будут доступны через 10-20 сек." },
+   { "wifi manager", "WiFi Manager", "Менеджер WiFi" },
+   { "setup wifi", "Setup WiFi", "WiFi настройки" },
+   { "wifi list hint", "Please choose WiFi SSID from the list", "Выберите SSID сети из списка" },
+   { "password", "Password", "Пароль" },
+   { "show password", "Show password", "Показать пароль" },
+   { "main", "Main", "Главная" },
+   { "setup", "Setup", "Настройка" },
 };
 
 String findStringToTranslate(String src) {
@@ -89,23 +101,23 @@ WebServer server(80);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
+void handleJs(void);
+void handleCss(void);
 void handleRoot(void);
 void handleReset(void);
+void handleLedOn(void);
+void handleLedOff(void);
+void handleMatrix(void);
 void handleRestart(void);
-void handleCss(void);
-void handleJs(void);
-void handleTimeOffset(void);
+void handleDefault(void);
+void handleTimezone(void);
+void handleTelemetry(void);
+void handleMidBuffer(void);
 void handleTimeFormat(void);
 void handleBrightness(void);
-void handleTelemetry(void);
-void handleLedOff(void);
-void handleLedOn(void);
-void handleMatrix(void);
+void handleLongBuffer(void);
+void handleShortBuffer(void);
 void handleWifiManagerJs(void);
-void handleDefault(void);
-void handleShortBuffer();
-void handleMidBuffer();
-void handleLongBuffer();
 void serveBuffer(const char* filename, int count);
 
 // ****************************************************************************
@@ -154,7 +166,7 @@ void initConnectedServerEndpoints(void)
     server.on("/style.css", handleCss);
     server.on("/index.js", handleJs);
     server.on("/readtelemetry", handleTelemetry);
-    server.on("/timeoffset", handleTimeOffset);
+    server.on("/timezone", handleTimezone);
     server.on("/timeformat", handleTimeFormat);
     server.on("/brightness", handleBrightness);
     server.on("/matrix", handleMatrix);
@@ -284,28 +296,7 @@ void handleRoot(void)
 
     // Just serve the index page from SPIFFS when asked for
     File file;
-    // if (language == "ru")
-    // {
-    //     file = LittleFS.open("/index_ru.html", "r");
-    // }
-    // else
-    // {
-    //     file = LittleFS.open("/index.html", "r");
-    // }
     file = LittleFS.open("/index.html", "r");
-
-    // if(!digitalRead(BLUE_LED_PIN)) {
-    //     if (language == "ru")
-    //         ledState = "ВКЛ";
-    //     else
-    //         ledState = "ON";
-    // }
-    // else {
-    //     if (language == "ru")
-    //         ledState = "ВЫКЛ";
-    //     else
-    //         ledState = "OFF";
-    // }
 
     //server.sendHeader("Content-type", "text/html");
     server.sendHeader("Content-type", "text/html; charset=utf-8");
@@ -313,31 +304,12 @@ void handleRoot(void)
     while(file.available())
     {
         fileContent = file.readStringUntil('\n');
-
         String toReplace = findStringToTranslate(fileContent);
-
-        // String toReplace = "";
-        // if (fileContent=="    <title>ESP {clock}</title>")
-        //     toReplace = "{clock}";
-
         if (!toReplace.isEmpty())
         {
-            //Serial.printf("Found a string to translate: %s\n", toReplace.c_str());
             String replaceWith = translateString(toReplace);
             fileContent.replace(String("{")+toReplace+String("}"), replaceWith);
-            //Serial.printf("Found translation: %s\n", replaceWith.c_str());
         }
-
-        // if (fileContent.indexOf("{clock}") > 0)
-        // {
-        //     String toReplace = findStringToTranslate(fileContent);
-        //     fileContent = "    <title>ESP Clock</title>"+
-        //         String(fileContent.indexOf("{"))+","+
-        //         String(fileContent.lastIndexOf("}"))+","+
-        //         String(fileContent.length())+","+
-        //         toReplace+","+
-        //         (toReplace.isEmpty()?"empty":"not_empty")+"\n";
-        // }
         
         String fw_version_template = "%FW_VERSION%";
         String state_template = "%STATE%";
@@ -345,6 +317,17 @@ void handleRoot(void)
         String max_intencity_template = "%MAX_INTENCITY%";
         String light_on_min_intencity_template = "%LIGHT_ON_MIN_INTENCITY%";
         String light_on_max_intencity_template = "%LIGHT_ON_MAX_INTENCITY%";
+        String timezones_template = "%TIMEZONES_LIST%";
+
+        if (fileContent.indexOf(timezones_template) >= 0)
+        {
+            for(int i = 0; i < TIMEZONE_NUM; i++) {
+                String sTimezone = getIanaTZ(i);
+                server.sendContent("<option value='"+sTimezone+"'>"+sTimezone+"</option>");
+            }
+            yield();
+            continue;
+        }
 
         if (fileContent.indexOf(fw_version_template) >= 0)
         { 
@@ -440,44 +423,6 @@ void handleTelemetry(void)
         "\"pressure\": \"" + pressure_string + "\"" +
         "}";
     server.send(200, "text/plane", json_response);
-}
-
-// ----------------------------------------------------------------------------
-
-void handleTimeOffset(void)
-{
-    HTTPMethod method = server.method();
-    Serial.print("Method: ");
-    if(method == HTTP_GET)
-    {
-        Serial.println("HTTP_GET");
-    }
-    else if(method == HTTP_POST)
-    {
-        Serial.println("HTTP_POST");
-        int params = server.args();
-        Serial.print("N of params: ");
-        Serial.println(params);
-        if (params == 1)
-        {
-            Serial.print("Param: ");
-            String paramName = server.argName(0);
-            Serial.print(paramName);
-            Serial.print("=");
-            String paramValue = server.arg(0);
-            Serial.println(paramValue);
-
-            if (paramName == "seconds")
-            {
-                timeOffset = paramValue.toInt();
-                Serial.print("New time offset: ");
-                Serial.println(timeOffset);
-                prefs.putInt("timeOffset", timeOffset);
-            }
-        }
-    }
-    
-    server.send(200, "text/plane", String(timeOffset));
 }
 
 // ----------------------------------------------------------------------------
@@ -671,19 +616,28 @@ void handleWiFiManager(void)
       Serial.println("HTTP_GET");
         // Just serve the index page from SPIFFS when asked for
         File file;
-        if (language == "ru")
-        {
-            file = LittleFS.open("/wifimanager_ru.html", "r");
-        }
-        else
-        {
-            file = LittleFS.open("/wifimanager.html", "r");  
-        }
+        // if (language == "ru")
+        // {
+        //     file = LittleFS.open("/wifimanager_ru.html", "r");
+        // }
+        // else
+        // {
+        //     file = LittleFS.open("/wifimanager.html", "r");  
+        // }
+
+        file = LittleFS.open("/wifimanager.html", "r"); 
 
         String fileContent;
         while(file.available())
         {
           fileContent = file.readStringUntil('\n');
+          String toReplace = findStringToTranslate(fileContent);
+          if (!toReplace.isEmpty())
+          {
+              String replaceWith = translateString(toReplace);
+              fileContent.replace(String("{")+toReplace+String("}"), replaceWith);
+          }
+
           String search_template = "%SSID_LIST%";
           int pos = fileContent.indexOf(search_template);
           if (pos >= 0)
@@ -885,6 +839,46 @@ void getNetworks(void)
     {
         Serial.printf(PSTR("WiFi scan error %d"), networkNum);
     }
+}
+
+void handleTimezone()
+{
+    HTTPMethod method = server.method();
+    Serial.print("Method: ");
+    if(method == HTTP_GET)
+    {
+        Serial.println("HTTP_GET");
+    }
+    else if(method == HTTP_POST)
+    {
+        Serial.println("HTTP_POST");
+        int params = server.args();
+        Serial.print("N of params: ");
+        Serial.println(params);
+        if(params == 1)
+        {
+            Serial.print("Param: ");
+            String paramName = server.argName(0);
+            Serial.print(paramName);
+            Serial.print("=");
+            String paramValue = server.arg(0);
+            Serial.println(paramValue);
+            if (paramName == "timezone") 
+            {
+                setupTimezone = paramValue;
+                Serial.println("Swithed to Timezone: " + setupTimezone);
+                if (setupTimezone == "Autodetect") {
+                    if (!timezoneDetected) timezoneDetect();
+                    timezoneSetup(detectedTimezone);
+                    setupTimezone = detectedTimezone;
+                }
+                else
+                    timezoneSetup(setupTimezone);
+            }
+        }
+    }
+    String httpParam = setupTimezone;
+    server.send(200, "text/plane", httpParam);
 }
 
 void handleMatrix(void)

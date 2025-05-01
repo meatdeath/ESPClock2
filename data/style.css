@@ -10,7 +10,11 @@ html {
   }
 
   .firmware-version {
+    padding-right: 24px;
     color: wheat;
+  }
+  .firmware-version div {
+    text-align: right;
   }
   
   p { 
@@ -18,8 +22,8 @@ html {
   }
   
   .topnav { 
-    overflow: hidden; 
-    background-color: #0A1128;
+    overflow: hidden;
+    background: linear-gradient(#606060, #202020);
   }
 
   .topnav table {
@@ -222,8 +226,7 @@ html {
 }
 
 .header-corner-cell {
-  width: 90px;
-  padding-right: 16px;
+  width: 30%;
 }
 
 .button-ru, .button-en {
@@ -388,5 +391,43 @@ html {
   height: 100% !important;
   width: 100% !important;
   max-height: 600px;
+}
+
+.bar-container {
+  display:flex;
+  background: linear-gradient(#202020, #606060);
+}
+.language-container {
+  padding: 12px 24px 0 0;
+}
+.language-bar {
+  width: 25%;
+  text-align: right;
+}
+.lang-block {
+  display: inline-block;
+}
+.tab-bar {
+  padding-top: 8px;
+  text-align: left;
+  width: 75%;
+}
+.tab {
+  display: inline-block;
+  padding: 8px;
+  cursor: pointer;
+  min-width: 120px;
+  border-radius: 8px 8px 0 0;
+  text-align: center;
+}
+.tab p {
+  margin:0;
+  color:burlywood;
+}
+.tab.active-tab {
+  background: white;
+}
+.tab.active-tab  p {
+  color: black;
 }
 

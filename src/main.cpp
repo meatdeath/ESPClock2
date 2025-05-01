@@ -1,20 +1,7 @@
 #include "main.h"
 #include <TaskScheduler.h>
 
-
-Scheduler runner;
-DS1307 ds1307;  // I2C
-hw_timer_t *ms_timer = NULL;
-
-//Variables to save values from HTML form
-long timeOffset = 0;
-String timeRead = "";
-bool show_ntp_time = true;
-String temperature_units = "C";
-String pressure_units = "mm";
-
-// String ledState;// Stores LED state
-bool restart = false;
+//-----------------------------------------------------------------------------
 
 enum state_en
 {
@@ -25,17 +12,28 @@ enum state_en
 };
 uint8_t state = STATE_TIME;
 
+Scheduler runner;
+DS1307 ds1307;  // I2C
+hw_timer_t *ms_timer = NULL;
+String setupTimezone = "Autodetect";
+bool timezoneDetected = false;
+String timeRead = "";
+bool restart = false;
+volatile bool redraw_screen = true;
+volatile bool colon_visible = true;
+volatile bool ds1307_sqw_failure = false;
+volatile bool telemetry_shown = false;
+volatile uint16_t telemetry_counter = 0;
+
+// Variables to save values from HTML form
+bool show_ntp_time = true;
+String temperature_units = "C";
+String pressure_units = "mm";
+String detectedTimezone = "";
 uint8_t lower_intencity = 1;
 uint8_t high_intencity = 6;
 uint16_t higher_light = 100;
 uint16_t lower_light = 3000;
-
-volatile bool redraw_screen = true;
-volatile bool colon_visible = true;
-volatile bool ds1307_sqw_failure = false;
-
-volatile bool telemetry_shown = false;
-volatile uint16_t telemetry_counter = 0;
 
 
 void ds1307SqwFailCallback();
@@ -44,6 +42,7 @@ Task ds1307FailCkeck(2000, 1, ds1307SqwFailCallback, &runner, false);
 #define TELEMETRY_SHOW_MS       2000
 #define TELEMETRY_SHOW_TIMEOUT  ((telemetry_counter==TELEMETRY_SHOW_MS)?true:false)
 
+void timezoneDetect();
 void CorrectDisplayBrightness();
 void stateTime();
 
@@ -60,7 +59,7 @@ void IRAM_ATTR onMsTimerIsr()
 void IRAM_ATTR ds1307SqwIsr()
 {
     redraw_screen = true;
-    colon_visible = !colon_visible; // digitalRead(DS1307_SQW_PIN)?true:false;
+    colon_visible = !colon_visible;
     ds1307_sqw_failure = false;
     ds1307FailCkeck.disable();
     ds1307FailCkeck.enable();
@@ -100,6 +99,12 @@ void setup()
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
 	ds1307.begin();
 
+    // Enable SQW output
+    Wire.beginTransmission(0x68);  // DS3231 I2C address
+    Wire.write(0x0E);              // Control register
+    Wire.write(0b00000000);        // INTCN=0 (bit 2), RS2:RS1 = 00 => 1Hz
+    Wire.endTransmission();
+
     pinMode(DS1307_SQW_PIN, INPUT);
 	attachInterrupt(DS1307_SQW_PIN, ds1307SqwIsr, CHANGE);
 
@@ -137,9 +142,10 @@ void setup()
     delay(1000);
     display_StartingString();
 
-    Serial.print("SSID: " + ssid);
-    Serial.print("PASS: " + pass);
+    Serial.println("SSID: " + ssid);
+    Serial.println("PASS: " + pass);
 
+    timezoneInit();
     // Connect to Wi-Fi network with SSID and password
     if(initWiFi()) 
     {  
@@ -149,6 +155,15 @@ void setup()
         else Serial.printf("mDNS responder started: %s.local\n", mdns_name);
         initConnectedServerEndpoints();
         BEEP(50);
+        timezoneDetect();
+
+        if (setupTimezone == "Autodetect") {
+            if (timezoneDetected) {
+                timezoneSetup(detectedTimezone);
+            }
+        } else {
+            timezoneSetup(setupTimezone);
+        }
     }
     else 
     {
@@ -173,6 +188,10 @@ void setup()
     bmp280Task.enable();
     ds1307FailCkeck.enable();
     timeClient.begin();
+    
+    initTelemetryLog();
+    
+    Serial.println("Setup done.");
 }
 
 // ----------------------------------------------------------------------------
@@ -282,6 +301,8 @@ void loop()
     }    
 }
 
+// ----------------------------------------------------------------------------
+
 void CorrectDisplayBrightness()
 {
     static int current_intensity = -2;
@@ -305,107 +326,232 @@ void CorrectDisplayBrightness()
 
 // ----------------------------------------------------------------------------
 
+void showDs1307Time() {
+    ds1307.getTime();
+
+    Serial.printf("Corrected DS1307 time: %02d:%02d:%02d\n", 
+        ds1307.hour,
+        ds1307.minute,
+        ds1307.second);
+
+    display_Time(
+        ds1307.hour, 
+        ds1307.minute,
+        ds1307.second, 
+        ds1307_sqw_failure?true:colon_visible);
+}
+
+// *************************************************************************
+
+void timezoneDetect() {
+    HTTPClient http;
+    http.begin("http://worldtimeapi.org/api/ip");
+    int httpCode = http.GET();
+    
+    if (httpCode == 200) {
+        String payload = http.getString();
+        Serial.println("Ответ от сервера:");
+        Serial.println(payload);
+
+        // Разбираем JSON
+        JSONVar json = JSON.parse(payload);
+
+        if (JSON.typeof(json) == "undefined") {
+            Serial.println("Ошибка парсинга JSON");
+            return;
+        }
+    
+        detectedTimezone = (const char*)json["timezone"];
+        Serial.print("Временная зона: ");
+        Serial.print(detectedTimezone);
+        Serial.print(" | ");
+        timezoneDetected = true;
+
+        // Получаем текущее время
+        configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+        time_t now = time(nullptr);
+        int retries = 0;
+        while (now < 100000 && retries < 20) {
+            delay(500);
+            Serial.print(".");
+            now = time(nullptr);
+            retries++;
+        }
+        Serial.println();
+        if (now < 100000) {
+            Serial.println("Не удалось синхронизировать время.");
+            return;
+        } 
+       
+    } else {
+        Serial.printf("Ошибка HTTP-запроса: %d\n", httpCode);
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+void timezoneSetup(String timezone) {
+    prefs.putString("timezone", timezone);
+
+    char szTimezone[64];
+    strncpy(szTimezone, getPosixTZ(timezone).c_str(), 64);
+        
+    // Ставим временную зону
+    Serial.println(szTimezone);
+    setenv("TZ", szTimezone, 1);
+    tzset();
+
+    time_t now = time(nullptr);
+    struct tm timeinfo;
+    localtime_r(&now, &timeinfo);
+
+    char buffer[30];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    Serial.print("Локальное время: ");
+    Serial.println(buffer);
+}
+
+// ----------------------------------------------------------------------------
+
 void stateTime()
 {    
     if (accessPoint)
     {
+        Serial.println("Run as a wifi server");
         if (redraw_screen)
         {
             redraw_screen = false;
-            ds1307.getTime();
-            
-            // +24 hours required to avoid overflow on correction
-            unsigned long corrected_time = (24+ds1307.hour) * 3600 + ds1307.minute * 60 + ds1307.second + timeOffset;
-            uint8_t corrected_hour, corrected_minute, corrected_second;    
-            SecToTime(corrected_time, corrected_hour, corrected_minute, corrected_second);
-
-            char time_str[20] ="";
-            snprintf(time_str, 20, "%02d:%02d:%02d", corrected_hour, corrected_minute, corrected_second);
-            Serial.printf("Corrected DS1307 time: %s\n", time_str);
-
-            display_Time(corrected_hour, corrected_minute, corrected_second, colon_visible);
-        }
-        else if (ds1307_sqw_failure)
-        {
-            display_Invalid();
+            showDs1307Time();
         }
     }
     else
     {
-        uint8_t corrected_hour, corrected_minute, corrected_second;
-        uint8_t hour, minute, second;
-        unsigned long corrected_time, epoch_time;
-        bool ntp_time_valid = timeClient.update();
-
+        unsigned long corrected_epoch_time, epoch_time;
+        timeClient.update();
+        bool ntp_time_valid = timeClient.isTimeSet();
+        
+        //Serial.printf("Run as a wifi client: %d %d\n", ntp_time_valid, show_ntp_time);
         if (ntp_time_valid && show_ntp_time)
         {
+            // Get epoch time from NTP
             epoch_time = timeClient.getEpochTime();
-            corrected_time = epoch_time + timeOffset;
             
-            SecToTime(corrected_time, corrected_hour, corrected_minute, corrected_second);
-            SecToTime(epoch_time, hour, minute, second);
+            // Extract day/time info from epoch time
+            struct tm *timeinfo;
+            timeinfo = localtime((time_t*)&epoch_time);
 
+            // Create string to return via web
             char time_str[20] ="";
-            snprintf(time_str, 20, "%02d:%02d:%02d", corrected_hour, corrected_minute, corrected_second);
+            snprintf(time_str, 20, "%02d:%02d:%02d", 
+                timeinfo->tm_hour, 
+                timeinfo->tm_min, 
+                timeinfo->tm_sec);
             timeRead = String(time_str);
 
-            if (redraw_screen || (ds1307_sqw_failure && corrected_second == 0))
+            // Check if screen needs to be updated
+            if (redraw_screen || (ds1307_sqw_failure && timeinfo->tm_sec == 0))
             {
                 redraw_screen = false;
-                Serial.printf("Show time: %s\n", time_str);
 
-                display_Time(corrected_hour, corrected_minute, corrected_second, colon_visible);
+                // Serial.printf("Show time: %s | telemetry valid: %s\n", time_str, telemetry.valid?"yes":"no");
+
+                static int last_log_hour = -1;
+                static int last_log_minute = -1;
+
+                if (telemetry.valid && 
+                    // correctedTimeinfo->tm_sec == 0 && 
+                    // last_log_minute != correctedTimeinfo->tm_min
+                    last_log_hour != timeinfo->tm_hour &&
+                    timeinfo->tm_min == 0
+                ) {
+                    last_log_hour = timeinfo->tm_hour;
+                    last_log_minute = timeinfo->tm_min;
+                    logTelemetry(epoch_time, telemetry.temperature, telemetry.pressure, telemetry.humidity);
+                }
+
+                display_Time( 
+                    timeinfo->tm_hour, 
+                    timeinfo->tm_min, 
+                    timeinfo->tm_sec, 
+                    colon_visible);
+
+                if (timeinfo->tm_sec == 30) {
+                    // Constant defines maximum time difference between DS1307 and NTP
+                    const unsigned long diif_limit = 5;
+                    
+                    // Get time from DS1307
+                    ds1307.getTime();
+
+                    // Serial.printf("DS1307 time read: %4d-%02d-%02d %02d:%02d:%02d\n",
+                    //     ds1307.year, ds1307.month, ds1307.dayOfMonth,
+                    //     ds1307.hour, ds1307.minute, ds1307.second);
+
+                    // Fill time info structure to convert it into epoch time
+                    struct tm ds1307Timeinfo;
+                    ds1307Timeinfo.tm_year  = ds1307.year + 2000 - 1900;  // In info year starts from 1900, in ds1307 year starts from 2000
+                    ds1307Timeinfo.tm_mon   = ds1307.month - 1;     // Месяц (0 = Январь, 3 = Апрель)
+                    ds1307Timeinfo.tm_mday  = ds1307.dayOfMonth;   // День месяца
+                    ds1307Timeinfo.tm_hour  = ds1307.hour;         // Час (24ч формат)
+                    ds1307Timeinfo.tm_min   = ds1307.minute;        // Минуты
+                    ds1307Timeinfo.tm_sec   = ds1307.second;        // Секунды
+                    ds1307Timeinfo.tm_isdst = timeinfo->tm_isdst;                  // Летнее время (0 = нет)
                 
-                ds1307.getTime();
+                    // Converting DS1307 time info into epoch time 
+                    unsigned long ds1307_epoch_time = (unsigned long)mktime(&ds1307Timeinfo);
 
-                const unsigned long seconds_in_day = 24*60*60;
-                const unsigned long diif_limit = 5;
+                    // // Print time/timestamps from DS1307 and NTP
+                    // Serial.printf("NTP date/time: %lu - %4d-%02d-%02d %02d:%02d:%02d\n",
+                    //     epoch_time,
+                    //     timeinfo->tm_year + 1900, timeinfo->tm_mon+1, timeinfo->tm_mday,
+                    //     timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+                    // Serial.printf("DS1307 time:   %lu - %4d-%02d-%02d %02d:%02d:%02d\n",
+                    //     ds1307_epoch_time,
+                    //     ds1307Timeinfo.tm_year + 1900, ds1307Timeinfo.tm_mon+1, ds1307Timeinfo.tm_mday,
+                    //     ds1307Timeinfo.tm_hour, ds1307Timeinfo.tm_min, ds1307Timeinfo.tm_sec);
 
-                unsigned long epoch_day_seconds = epoch_time%seconds_in_day;
-                unsigned long ds1307_day_seconds = ds1307.hour*60*60 + ds1307.minute*60 + ds1307.second;
+                    // Serial.printf("Epochs: %lu %lu\n", epoch_time, ds1307_epoch_time);
 
-                // if seconds not around overflow
-                if ((epoch_day_seconds > diif_limit && ds1307_day_seconds < (seconds_in_day-diif_limit)) ||
-                    (ds1307_day_seconds > diif_limit && epoch_day_seconds < (seconds_in_day-diif_limit)) )
-                {
-                    uint8_t second_diff = 0;
-                    if (epoch_day_seconds > ds1307_day_seconds)
-                        second_diff = epoch_day_seconds - ds1307_day_seconds;
+                    // Get time difference in seconds
+                    uint32_t second_diff = 0;
+                    if (epoch_time > ds1307_epoch_time)
+                        second_diff = epoch_time - ds1307_epoch_time;
                     else
-                        second_diff = ds1307_day_seconds - epoch_day_seconds;
+                        second_diff = ds1307_epoch_time - epoch_time;
 
+                    // Check if time difference doesn;t exceed the limit
                     if (second_diff > diif_limit)
-                    {
-                        Serial.printf("DS1307 time: %02d:%02d:%02d\n", ds1307.hour, ds1307.minute, ds1307.second);
-                        delay(500);
-                        ds1307.fillByHMS(hour, minute, second+1);
+                    {                    
+                        // Print time/timestamps from DS1307 and NTP
+                        Serial.printf("Time difference: %lus\n", second_diff);
+
+                        // Send syncronization date & time to DS1307
+                        ds1307.fillByYMD(timeinfo->tm_year + 1900, timeinfo->tm_mon+1, timeinfo->tm_mday);
+                        ds1307.fillByHMS(timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+                        Serial.printf("Store time: %4d-%02d-%02d %02d:%02d:%02d\n",
+                            timeinfo->tm_year + 1900, timeinfo->tm_mon+1, timeinfo->tm_mday,
+                            timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+                        // Apply DS1307 setup
                         ds1307.setTime();
-                        Serial.printf("Syncronized DS1307 with NTP time: %s\n", time_str);
+
+                        Serial.println("DS1307 time syncronized with the time from NTP.");
                     }
                 }
             }
-        }
-        else
-        {
-            if (redraw_screen)
-            {
+        } else {
+            if (redraw_screen) {
                 redraw_screen = false;
-
-                ds1307.getTime();
-
-                // +24 hours required to avoid overflow on correction
-                corrected_time = (24+ds1307.hour) * 3600 + ds1307.minute * 60 + ds1307.second + timeOffset;
-                SecToTime(corrected_time, corrected_hour, corrected_minute, corrected_second);
-                
-                char time_str[20] ="";
-                snprintf(time_str, 20, "%02d:%02d:%02d", corrected_hour, corrected_minute, corrected_second);
-                timeRead = String(time_str);
-
-                display_Time(corrected_hour, corrected_minute, corrected_second, colon_visible);
-            }
-            else if (ds1307_sqw_failure)
-            {
+                showDs1307Time();
+            } 
+            else if (ds1307_sqw_failure) {
+                Serial.println("SQW fail");
                 display_Invalid();
+                Wire.beginTransmission(0x68);  // DS3231 I2C address
+                Wire.write(0x0E);              // Control register
+                Wire.write(0b00000000);        // INTCN=0 (bit 2), RS2:RS1 = 00 => 1Hz
+                Wire.endTransmission();
+                ds1307FailCkeck.enable();
             }
         }
     }

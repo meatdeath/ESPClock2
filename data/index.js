@@ -4,7 +4,8 @@ let combinedChart;
 function onPageLoad()
 {
     rangeSelect = document.getElementById('rangeSelect');
-    getOffset();
+    onMainTabSelected();
+    getTimezone();
     telemetryFormat("",null);
     getTelemetry();
     matrixRequest(null, null);
@@ -81,32 +82,38 @@ function getTelemetry()
     xhttp.send();
 }
 
-function setOffset() 
+function getTimezone()
 {
-    var hours = document.getElementById("hours-offset").value;
-    var minutes = document.getElementById("minutes-offset").value;
-    var seconds = hours*3600 + ((hours>=0)?minutes:(-minutes)) *60;
-    console.log("Offset: " + hours + "h " + minutes + "min => " + seconds + "s");
-
-    var param = "?seconds="+seconds;
-
     var xhttp = new XMLHttpRequest();
-
-    xhttp.onreadystatechange = function() 
+    xhttp.onreadystatechange = function()
     {
         if (this.readyState == 4 && this.status == 200) 
         {
-            var seconds = this.responseText;
-            var hours = (seconds / 3600).toFixed(0);
-            var minutes = ((seconds%3600) / 60).toFixed(0);
-            if (minutes < 0) minutes = -minutes;    
-            console.log("Offset from device: " + hours + "h " + minutes + "min => " + seconds + "s");
-            document.getElementById("hours-offset").value = hours;
-            document.getElementById("minutes-offset").value = minutes;
+            var timezoneRead = this.responseText;
+            console.log("Timezone setup: " + timezoneRead);
+            document.getElementById("timezone").value = timezoneRead;
         }
-    };
+    }
+    xhttp.open("GET", "timezone", true);
+    xhttp.send();
+}
 
-    xhttp.open("POST", "timeoffset"+param, true);
+function setTimezone()
+{
+    var timezone = document.getElementById("timezone").value;
+    console.log("Timezone selected: " + timezone);
+    var param = "?timezone="+timezone;
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function()
+    {
+        if (this.readyState == 4 && this.status == 200) 
+        {
+            var timezoneRead = this.responseText;
+            console.log("Timezone setup: " + timezoneRead);
+            document.getElementById("timezone").value = timezoneRead;
+        }
+    }
+    xhttp.open("POST", "timezone"+param, true);
     xhttp.send();
 }
 
@@ -211,27 +218,6 @@ function telemetryFormat(paramName, obj)
     }
 }
 
-function getOffset() 
-{
-    var xhttp = new XMLHttpRequest();
-
-    xhttp.onreadystatechange = function() 
-    {
-        if (this.readyState == 4 && this.status == 200) 
-        {
-            var seconds = this.responseText;
-            var hours = seconds / 3600;
-            var minutes = (seconds%3600) / 60;
-            if (minutes < 0) minutes = -minutes;    
-            console.log("Offset from device: " + hours + "h " + minutes + "min => " + seconds + "s");
-            document.getElementById("hours-offset").value = hours;
-            document.getElementById("minutes-offset").value = minutes;
-        }
-    };
-
-    xhttp.open("GET", "timeoffset", true);
-    xhttp.send();
-}
 
 function matrixRequest(paramName, obj)
 {
@@ -434,3 +420,20 @@ function fetchAndDraw(range) {
             });
       });
   }
+  
+function onMainTabSelected() 
+{
+    document.getElementsByClassName("setup-content")[0].style.display = "none";
+    document.getElementsByClassName("main-content")[0].style.display = "initial";
+    document.getElementsByClassName("tab")[0].classList.add("active-tab");
+    document.getElementsByClassName("tab")[1].classList.remove("active-tab");
+}
+  
+function onSetupTabSelected() 
+{
+    document.getElementsByClassName("setup-content")[0].style.display = "initial";
+    document.getElementsByClassName("main-content")[0].style.display = "none";
+    document.getElementsByClassName("tab")[0].classList.remove("active-tab");
+    document.getElementsByClassName("tab")[1].classList.add("active-tab");
+}
+
