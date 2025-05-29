@@ -8,6 +8,7 @@ enum state_en
     STATE_TIME = 0,
     STATE_TEMPERATURE,
     STATE_PRESSURE,
+    STATE_HUMIDITY,
     STATE_MAX
 };
 uint8_t state = STATE_TIME;
@@ -82,8 +83,8 @@ void setup()
     pinMode(BUZER_PIN, OUTPUT);
     BEEP(50);
 
-    // Init file system
-    if (LittleFS.begin()) Serial.println("LittleFS mounted successfully");
+    // Init file system (format it on mounting failure)
+    if (LittleFS.begin(true)) Serial.println("LittleFS mounted successfully");
     else Serial.println("An error has occurred while mounting LittleFS");
 
     // Set GPIO 2 as an OUTPUT
@@ -123,8 +124,7 @@ void setup()
 
     Serial.printf("Time from DS1307: %02d:%02d:%02d\n", ds1307.hour, ds1307.minute, ds1307.second);
 
-    Serial.print("Init BMP280... ");
-    bmp280Init();
+    TelemetryInit();
 
     buttonInit();
 
@@ -185,7 +185,7 @@ void setup()
     server.begin();
     Serial.println("HTTP server started");
     runner.startNow();  // set point-in-time for scheduling start
-    bmp280Task.enable();
+    TelemetryTask.enable();
     ds1307FailCkeck.enable();
     timeClient.begin();
     
@@ -284,6 +284,23 @@ void loop()
             {
                 telemetry_shown = true;
                 display_Pressure(telemetry.pressure);
+            }
+            else
+            {
+                if (TELEMETRY_SHOW_TIMEOUT)
+                {
+                    telemetry_shown = false;
+                    telemetry_counter = 0;
+                    state = STATE_TIME;
+                }
+            }
+            break;
+    
+        case STATE_HUMIDITY:
+            if (!telemetry_shown)
+            {
+                telemetry_shown = true;
+                display_Humidity(telemetry.humidity);
             }
             else
             {

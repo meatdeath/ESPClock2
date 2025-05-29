@@ -55,6 +55,7 @@ function getTelemetry()
             var time = jsonObj.time;
             var temperature = jsonObj.temperature;
             var pressure = jsonObj.pressure;
+            var humidity = jsonObj.humidity;
 
             if (time != undefined) {
                 console.log("Time: " + time);
@@ -75,6 +76,10 @@ function getTelemetry()
             if (pressure != undefined) {
                 console.log("Pressure: " + pressure);
                 document.getElementById("pressure-string").value = pressure;
+            }
+            if (humidity != undefined) {
+                console.log("Humidity: " + humidity);
+                document.getElementById("humidity-string").value = humidity;
             }
         }
     };

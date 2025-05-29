@@ -82,6 +82,7 @@ const digits_t digits[] PROGMEM =
         {5, {0xF8, 0x30, 0x40, 0x30, 0xF8}}, // m (RU)
         {5, {0xF8, 0x08, 0xF0, 0x08, 0xF0}}, // m (EN)
         {5, {0xFF, 0x09, 0x09, 0x09, 0x01}}, // F (Fahrengeit)
+        {5, {0x83, 0x63, 0x18, 0xC6, 0xC1}}, // DISPLAY_SYMBOL_PERCENT (%)
 };
 
 // ----------------------------------------------------------------------------
@@ -315,6 +316,43 @@ void display_Pressure(float pressure_f)
         offset += size + 1;
     }
 
+    display_Commit();
+}
+
+// ----------------------------------------------------------------------------
+
+void display_Humidity(int humidity)
+{
+    uint8_t size;
+    uint8_t i, offset = 6;
+
+    Serial.print("Display humidity: ");
+    Serial.println(humidity);
+    
+    uint8_t symbols[] {
+        (uint8_t)((humidity / 100) % 10),
+        (uint8_t)((humidity / 10) % 10),
+        (uint8_t)(humidity % 10),
+        DISPLAY_SYMBOL_PERCENT
+    };
+
+    display_Clear();
+    size_t symbols_size = sizeof(symbols);
+    for (int j = 0; j < symbols_size; j++)
+    {
+        Serial.print("Symbol code: ");
+        Serial.println(symbols[j]);
+        if (!(j == 0 && humidity < 100) &&
+            !(j == 1 && humidity < 10))
+        {
+            size = pgm_read_byte(&(digits[symbols[j]].size));
+            for (i = 0; i < size; i++)
+            {
+                display_Row(offset + i, pgm_read_byte(&(digits[symbols[j]].array[i])));
+            }
+        }
+        offset += size + 1;
+    }
     display_Commit();
 }
 

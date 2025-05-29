@@ -28,14 +28,15 @@
 #include <TaskSchedulerDeclarations.h>
 #include <HTTPClient.h>
 #include <Arduino_JSON.h>
+#include <AHT10.h>
 
 #include "web.h"
 #include "ota.h"
 #include "display.h"
 #include "button.h"
 #include "buzer.h"
-#include "bmp.h"
 #include "tools.h"
+#include "telemetry_task.h"
 #include "telemetry_log.h"
 #include "iana2posix.h"
 
@@ -59,8 +60,9 @@
 #define BUZER_PIN       14
 #endif
 
-#define DS1307_I2C_ADDR 0x68
-#define BMP280_I2C_ADDR 0x76
+#define DS1307_I2C_ADDR     0x68
+#define BMP280_I2C_ADDR_76  0x76
+#define BMP280_I2C_ADDR_77  0x77
 
 #define LIGHT_MAX       4000
 

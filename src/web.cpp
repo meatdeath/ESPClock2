@@ -7,7 +7,7 @@ enum {
     DICT_NUM
 };
 
-#define DICT_SIZE 44
+#define DICT_SIZE 45
 
 const String translation[DICT_SIZE][DICT_NUM] = {
     // DICT_IDX, DICT_EN, DICT_RU
@@ -16,6 +16,7 @@ const String translation[DICT_SIZE][DICT_NUM] = {
    { "time", "Time", "Время"},
    { "temperature", "Temperature", "Температура" },
    { "pressure", "Pressure", "Давление" },
+   { "humidity", "Humidity", "Влажность" },
    { "telemetry_setup", "Telemetry setup", "Настройка телеметрии" },
    { "hours_offset", "Hours offset", "Смещение в часах" },
    { "minutes_offset", "Minutes offset", "Смещение в минутах" },
@@ -402,10 +403,12 @@ void handleTelemetry(void)
     else pressure /= 100;
     String temperature_string = "-";
     String pressure_string = "-";
+    String humidity_string = "-";
     if (telemetry.valid)
     {
         temperature_string = String(temperature) + temperature_units;
         pressure_string = String(pressure);
+        humidity_string = String(telemetry.humidity)+"%";
         if (pressure_units == "mm") 
         {
             pressure_string += ((language=="ru")?"мм":"mm");
@@ -421,6 +424,8 @@ void handleTelemetry(void)
         "\"temperature\": \"" + temperature_string + "\"" +
         "," +
         "\"pressure\": \"" + pressure_string + "\"" +
+        "," +
+        "\"humidity\": \"" + humidity_string + "\"" +
         "}";
     server.send(200, "text/plane", json_response);
 }

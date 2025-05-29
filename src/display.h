@@ -35,6 +35,7 @@ enum __display_symbols {
     DISPLAY_SYMBOL_RU_M,
     DISPLAY_SYMBOL_EN_M,
     DISPLAY_SYMBOL_EN_F,
+    DISPLAY_SYMBOL_PERCENT,
 };
 
 enum __display_screens {
@@ -55,6 +56,7 @@ void display_SetBrightness(uint8_t percentage);
 
 void display_Pressure(float pressure);
 void display_Temperature(int temperature);
+void display_Humidity(int humidity);
 void display_Time(byte hours, byte minutes, byte seconds, bool show_colon);
 void display_Invalid(void);
 

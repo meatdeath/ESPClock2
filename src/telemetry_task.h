@@ -1,6 +1,9 @@
 #ifndef __BMP_H__
 #define __BMP_H__
 
+#include <Arduino.h>
+#include <TaskSchedulerDeclarations.h>
+
 typedef struct telemetry_st 
 {
     bool valid;
@@ -10,9 +13,9 @@ typedef struct telemetry_st
 } 
 telemetry_t;
 
-extern Task bmp280Task;
+extern Task TelemetryTask;
 extern telemetry_t telemetry;
 
-bool bmp280Init();
+bool TelemetryInit();
 
 #endif // __BMP_H__

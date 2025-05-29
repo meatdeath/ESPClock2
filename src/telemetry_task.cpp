@@ -1,25 +1,29 @@
 #include "main.h"
 
 Adafruit_BMP280 bmp280; // I2C
+AHT10 myAHT20(AHT10_ADDRESS_0X38, AHT20_SENSOR);
 
 telemetry_t telemetry = {.valid=false, .temperature=-273, .pressure=0, .humidity=0};
 
-void bmp280Callback();
-Task bmp280Task(5000, TASK_FOREVER, &bmp280Callback, &runner, false);
+void TelemetryCallback();
+Task TelemetryTask(5000, TASK_FOREVER, &TelemetryCallback, &runner, false);
 
 
 // ----------------------------------------------------------------------------
 
-bool bmp280Init() 
+bool TelemetryInit() 
 {
+    Serial.print("Init BMP280 on address 0x76... ");
     telemetry.valid = false;
-    bool bmp_initialized = bmp280.begin(BMP280_I2C_ADDR);
-    if (!bmp_initialized)
+    bool telemetryInitialized = bmp280.begin(BMP280_I2C_ADDR_76);
+
+    if (!telemetryInitialized)
     {
-        Serial.println(F("FAIL!\nCould not find a valid BMP280 sensor, check wiring or "
-                          "try a different address!"));
+        Serial.print(F("BMP280 sensor not found. \nTrying address 0x77..."));
+        telemetryInitialized = bmp280.begin(BMP280_I2C_ADDR_77);
     }
-    else
+
+    if (telemetryInitialized)
     {
         /* Default settings from datasheet. */
         bmp280.setSampling(Adafruit_BMP280::MODE_FORCED,     /* Operating Mode. */
@@ -28,27 +32,39 @@ bool bmp280Init()
             Adafruit_BMP280::FILTER_X16,      /* Filtering. */
             Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
         Serial.println("done");
+    } else {
+        Serial.println(F("FAIL!\nCould not find a valid BMP280 sensor, check wiring or "
+                          "try a different address!"));
     }
-    return bmp_initialized;
+
+    if (myAHT20.begin() != true)
+    {
+        telemetryInitialized = false;
+        Serial.println(F("AHT20 not connected or fail to load calibration coefficient"));
+    }
+
+    return telemetryInitialized;
 }
 
 // ----------------------------------------------------------------------------
 
-void bmp280Callback()
+void TelemetryCallback()
 {
     // Serial.println("Time to get measurements from bmp280...");
     if (bmp280.takeForcedMeasurement())
     {
         telemetry.temperature = bmp280.readTemperature();
         telemetry.pressure = bmp280.readPressure();
-        // Serial.printf("Temperature: %2.1f*C\n", telemetry.temperature);
-        // Serial.printf("Pressure: %.1fPa = %.2fmmHg\n", telemetry.pressure, telemetry.pressure/133.322);
+        telemetry.humidity = myAHT20.readHumidity();
+        Serial.printf("Temperature: %2.1f*C\n", telemetry.temperature);
+        Serial.printf("Pressure: %.1fPa = %.2fmmHg\n", telemetry.pressure, telemetry.pressure/133.322);
+        Serial.printf("Humidity: %3.0f%%\n", telemetry.humidity);
         telemetry.valid = true;
     }
     else
     {
         Serial.println("ERROR! Failed to get measurements from BMP280! Reinitialization...");
-        bmp280Init();
+        TelemetryInit();
     }
 }
 
